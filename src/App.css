@@ -1,0 +1,6 @@
+/* client/src/App.css */
+/* Chúng ta đã dùng Tailwind, nên file này để trống hoặc chỉ giữ lại cấu hình cơ bản */
+.container {
+  width: 100%;
+  /* Không đặt max-width cứng ở đây, để Tailwind xử lý */
+}
