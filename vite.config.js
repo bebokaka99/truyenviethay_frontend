@@ -13,7 +13,6 @@ export default defineConfig({
         secure: false,
       },
     },
-    // Thêm dòng này để cho phép domain giả
     allowedHosts: ['truyenviethay.vn', 'localhost', '192.168.1.154'],
   },
 })
