@@ -11,8 +11,7 @@ import {
   RiNotification3Line, RiLayoutGridFill, RiTrophyFill // Thêm icon
 } from 'react-icons/ri';
 
-const BACKEND_URL = process.env.REACT_APP_API_URL;
-
+const BACKEND_URL = 'http://192.168.1.154:5000';
 
 const Header = () => {
   // ... (Giữ nguyên logic state, api call, fetchNotifications...) ...
@@ -39,7 +38,7 @@ const Header = () => {
     if (!user) return;
     try {
       const token = localStorage.getItem('user_token');
-      const res = await axios.get(`${BACKEND_URL}/api/notifications`, {
+      const res = await axios.get('/api/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(res.data.items);
@@ -51,7 +50,7 @@ const Header = () => {
     if (unreadCount > 0) {
       try {
         const token = localStorage.getItem('user_token');
-        await axios.put(`${BACKEND_URL}/api/notifications/read-all`, {}, {
+        await axios.put('/api/notifications/read-all', {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUnreadCount(0);

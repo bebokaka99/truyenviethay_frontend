@@ -10,7 +10,7 @@ import {
 } from 'react-icons/ri';
 
 // --- KHAI BÁO BIẾN NÀY ĐỂ SỬA LỖI ---
-const BACKEND_URL = process.env.REACT_APP_API_URL;
+const BACKEND_URL = 'http://192.168.1.154:5000';
 
 const CommentSection = ({ comicSlug, chapterName = null }) => {
     const { user } = useAuth();
@@ -97,7 +97,7 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
 
         try {
             const token = localStorage.getItem('user_token');
-            await axios.post(`${BACKEND_URL}/api/comments/like`, { comment_id: commentId }, {
+            await axios.post(`${API_URL}/api/comments/like`, { comment_id: commentId }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
         } catch (error) { console.error("Lỗi like:", error); }

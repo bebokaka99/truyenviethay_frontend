@@ -12,7 +12,6 @@ import {
     RiGlobalLine, RiDownloadCloud2Line
 } from 'react-icons/ri';
 
-
 const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [data, setData] = useState([]);
