@@ -7,8 +7,9 @@ import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { 
   RiHeart3Fill, RiDeleteBinLine, 
-  RiEmotionUnhappyLine 
+  RiEmotionUnhappyLine, RiTimeLine
 } from 'react-icons/ri';
+import { formatTimeAgo } from '../utils/formatTime'; // Helper format thời gian (nếu có)
 
 const LibraryPage = () => {
   const { user } = useAuth();
@@ -19,6 +20,26 @@ const LibraryPage = () => {
   const [deleteTarget, setDeleteTarget] = useState(null); 
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Hàm helper format thời gian đơn giản (nếu chưa có utils)
+  const getTimeAgo = (dateString) => {
+      if (!dateString) return '';
+      const now = new Date();
+      const date = new Date(dateString);
+      const seconds = Math.floor((now - date) / 1000);
+      
+      let interval = seconds / 31536000;
+      if (interval > 1) return Math.floor(interval) + " năm trước";
+      interval = seconds / 2592000;
+      if (interval > 1) return Math.floor(interval) + " tháng trước";
+      interval = seconds / 86400;
+      if (interval > 1) return Math.floor(interval) + " ngày trước";
+      interval = seconds / 3600;
+      if (interval > 1) return Math.floor(interval) + " giờ trước";
+      interval = seconds / 60;
+      if (interval > 1) return Math.floor(interval) + " phút trước";
+      return "Vừa xong";
+  };
+
   useEffect(() => {
     const fetchLibrary = async () => {
       if (!user) return; 
@@ -28,7 +49,18 @@ const LibraryPage = () => {
         const response = await axios.get('/api/user/library', {
            headers: { Authorization: `Bearer ${token}` }
         });
-        setComics(response.data);
+        
+        // Sắp xếp: Truyện mới cập nhật (hoặc mới lưu) lên đầu
+        // Giả sử DB trả về updated_at hoặc created_at
+        const sortedComics = response.data.sort((a, b) => {
+            // Ưu tiên updated_at nếu có (thời gian truyện cập nhật chương mới)
+            // Nếu không, dùng created_at (thời gian user lưu)
+            const timeA = new Date(a.updated_at || a.created_at);
+            const timeB = new Date(b.updated_at || b.created_at);
+            return timeB - timeA;
+        });
+
+        setComics(sortedComics);
       } catch (error) {
         console.error("Lỗi tải thư viện:", error);
       } finally {
@@ -39,13 +71,11 @@ const LibraryPage = () => {
     fetchLibrary();
   }, [user]);
 
-  // Hàm mở Modal (Thay vì confirm alert)
   const openDeleteModal = (e, comic) => {
       e.preventDefault(); 
       setDeleteTarget(comic); 
   };
 
-  // Hàm thực thi xóa thật sự (Gắn vào nút Đồng Ý của Modal)
   const confirmDelete = async () => {
       if (!deleteTarget) return;
       setIsDeleting(true);
@@ -55,9 +85,8 @@ const LibraryPage = () => {
           await axios.delete(`/api/user/library/${deleteTarget.comic_slug}`, {
               headers: { Authorization: `Bearer ${token}` }
           });
-          // Cập nhật UI
           setComics(prev => prev.filter(c => c.comic_slug !== deleteTarget.comic_slug));
-          setDeleteTarget(null); // Đóng modal
+          setDeleteTarget(null);
       } catch (error) {
           alert('Lỗi khi xóa!');
       } finally {
@@ -66,10 +95,10 @@ const LibraryPage = () => {
   };
 
   const formatChapter = (chap) => {
-      if (!chap) return 'Mới';
+      if (!chap) return 'Chapter Mới'; // Mặc định nếu null
       return String(chap).toLowerCase().includes('chương') || String(chap).toLowerCase().includes('chapter') 
         ? chap 
-        : `Chương ${chap}`;
+        : `Chapter ${chap}`;
   };
 
   if (!user) {
@@ -94,19 +123,17 @@ const LibraryPage = () => {
     <div className="min-h-screen w-full bg-[#101022] font-display text-gray-300 flex flex-col">
       <Header />
       
-      {/* Gắn Component Modal */}
       <ConfirmModal 
-         isOpen={!!deleteTarget}
-         onClose={() => setDeleteTarget(null)}
-         onConfirm={confirmDelete}
-         title="Bỏ Theo Dõi?"
-         message={`Bạn có chắc muốn xóa truyện "${deleteTarget?.comic_name}" khỏi tủ truyện không?`}
-         isLoading={isDeleting}
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+          title="Bỏ Theo Dõi?"
+          message={`Bạn có chắc muốn xóa truyện "${deleteTarget?.comic_name}" khỏi tủ truyện không?`}
+          isLoading={isDeleting}
       />
 
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Header Section */}
         <div className="mb-8 border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-center gap-4">
             <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center text-white shadow-lg shadow-red-900/30">
@@ -123,7 +150,6 @@ const LibraryPage = () => {
             </div>
         </div>
 
-        {/* Loading */}
         {loading && (
             <div className="py-40 flex flex-col items-center justify-center gap-4">
                 <div className="w-12 h-12 border-4 border-white/10 border-t-red-500 rounded-full animate-spin"></div>
@@ -131,7 +157,6 @@ const LibraryPage = () => {
             </div>
         )}
 
-        {/* Empty State */}
         {!loading && comics.length === 0 && (
             <div className="py-20 flex flex-col items-center justify-center text-center bg-[#151525] rounded-2xl border border-white/5 border-dashed">
                 <RiEmotionUnhappyLine size={64} className="text-gray-600 mb-4" />
@@ -143,12 +168,10 @@ const LibraryPage = () => {
             </div>
         )}
 
-        {/* Grid Content */}
         {!loading && comics.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 animate-fade-in-up">
                 {comics.map((item) => (
                     <div key={item.id} className="group relative">
-                        {/* Link Truyện */}
                         <Link to={`/truyen-tranh/${item.comic_slug}`} className="flex flex-col gap-2 cursor-pointer">
                             <div className="w-full aspect-[2/3] bg-[#1f1f3a] rounded-xl overflow-hidden relative border border-white/5 group-hover:border-red-500/50 transition-all shadow-md group-hover:shadow-red-900/20">
                                 <img 
@@ -158,9 +181,17 @@ const LibraryPage = () => {
                                     loading="lazy"
                                 />
                                 
-                                <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+                                {/* Badge Chapter Mới Nhất */}
+                                <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
                                     {formatChapter(item.latest_chapter)}
                                 </div>
+
+                                {/* Badge Thời Gian (Cập nhật hoặc Lưu) */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm py-1.5 px-2 flex items-center gap-1 text-[10px] text-gray-400">
+                                    <RiTimeLine size={10} className="text-primary" />
+                                    {getTimeAgo(item.updated_at || item.created_at)}
+                                </div>
+
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             </div>
                             
@@ -169,10 +200,9 @@ const LibraryPage = () => {
                             </h4>
                         </Link>
 
-                        {/* Nút Xóa (Gọi hàm openDeleteModal) */}
                         <button 
                             onClick={(e) => openDeleteModal(e, item)}
-                            className="absolute top-1 left-1 w-8 h-8 rounded-full bg-black/60 hover:bg-red-600 text-gray-300 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-lg z-10 scale-90 group-hover:scale-100"
+                            className="absolute top-1 left-1 w-8 h-8 rounded-full bg-black/60 hover:bg-red-600 text-gray-300 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-lg z-20 scale-90 group-hover:scale-100"
                             title="Bỏ theo dõi"
                         >
                             <RiDeleteBinLine size={14} />
