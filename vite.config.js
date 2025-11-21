@@ -11,8 +11,8 @@ export default defineConfig({
         target: 'https://truyenviethay-backend.onrender.com',
         changeOrigin: true,
         secure: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
         // 🔑 Dòng Đã Thêm: Loại bỏ tiền tố '/api' trước khi gửi đến Backend
-        rewrite: (path) => path.replace(/^\/api/, ''), 
       },
     },
     // Thêm dòng này để cho phép domain giả
