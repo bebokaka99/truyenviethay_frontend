@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { 
   RiHeart3Fill, RiDeleteBinLine, 
-  RiEmotionUnhappyLine, RiTimeLine
+  RiEmotionUnhappyLine, RiTimeLine, RiBookOpenLine
 } from 'react-icons/ri';
 
 const LibraryPage = () => {
@@ -15,13 +15,12 @@ const LibraryPage = () => {
   const [comics, setComics] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // State cho Modal Xóa
   const [deleteTarget, setDeleteTarget] = useState(null); 
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Hàm helper format thời gian đơn giản (nếu chưa có utils)
+  // Hàm format thời gian: X phút trước / Y giờ trước
   const getTimeAgo = (dateString) => {
-      if (!dateString) return '';
+      if (!dateString) return 'Vừa xong';
       const now = new Date();
       const date = new Date(dateString);
       const seconds = Math.floor((now - date) / 1000);
@@ -45,21 +44,11 @@ const LibraryPage = () => {
 
       try {
         const token = localStorage.getItem('user_token');
+        // Backend bây giờ sẽ tự gọi Otruyen để lấy dữ liệu mới nhất
         const response = await axios.get('/api/user/library', {
            headers: { Authorization: `Bearer ${token}` }
         });
-        
-        // Sắp xếp: Truyện mới cập nhật (hoặc mới lưu) lên đầu
-        // Giả sử DB trả về updated_at hoặc created_at
-        const sortedComics = response.data.sort((a, b) => {
-            // Ưu tiên updated_at nếu có (thời gian truyện cập nhật chương mới)
-            // Nếu không, dùng created_at (thời gian user lưu)
-            const timeA = new Date(a.updated_at || a.created_at);
-            const timeB = new Date(b.updated_at || b.created_at);
-            return timeB - timeA;
-        });
-
-        setComics(sortedComics);
+        setComics(response.data);
       } catch (error) {
         console.error("Lỗi tải thư viện:", error);
       } finally {
@@ -94,10 +83,13 @@ const LibraryPage = () => {
   };
 
   const formatChapter = (chap) => {
-      if (!chap) return 'Chapter Mới'; // Mặc định nếu null
-      return String(chap).toLowerCase().includes('chương') || String(chap).toLowerCase().includes('chapter') 
-        ? chap 
-        : `Chapter ${chap}`;
+      if (!chap || chap === 'Đang cập nhật') return 'New';
+      // Nếu chuỗi đã có chữ "Chapter" hoặc "Chương", giữ nguyên
+      if (String(chap).toLowerCase().includes('chương') || String(chap).toLowerCase().includes('chapter')) {
+          return chap;
+      }
+      // Nếu chỉ là số, thêm chữ "Chap"
+      return `Chap ${chap}`;
   };
 
   if (!user) {
@@ -152,7 +144,7 @@ const LibraryPage = () => {
         {loading && (
             <div className="py-40 flex flex-col items-center justify-center gap-4">
                 <div className="w-12 h-12 border-4 border-white/10 border-t-red-500 rounded-full animate-spin"></div>
-                <p className="text-gray-500 animate-pulse text-sm font-bold">Đang tải kho báu...</p>
+                <p className="text-gray-500 animate-pulse text-sm font-bold">Đang đồng bộ dữ liệu từ Server...</p>
             </div>
         )}
 
@@ -180,25 +172,27 @@ const LibraryPage = () => {
                                     loading="lazy"
                                 />
                                 
-                                {/* Badge Chapter Mới Nhất */}
-                                <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
+                                {/* BADGE: HIỂN THỊ CHƯƠNG MỚI NHẤT TỪ OTruyen API */}
+                                <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
+                                    <RiBookOpenLine size={10} />
                                     {formatChapter(item.latest_chapter)}
                                 </div>
 
-                                {/* Badge Thời Gian (Cập nhật hoặc Lưu) */}
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm py-1.5 px-2 flex items-center gap-1 text-[10px] text-gray-400">
+                                {/* BADGE: THỜI GIAN CẬP NHẬT THỰC TẾ TỪ OTruyen API */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm py-1.5 px-2 flex items-center gap-1 text-[10px] text-gray-400 border-t border-white/10">
                                     <RiTimeLine size={10} className="text-primary" />
-                                    {getTimeAgo(item.updated_at || item.created_at)}
+                                    <span className="truncate">{getTimeAgo(item.updated_at)}</span>
                                 </div>
 
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             </div>
                             
-                            <h4 className="text-gray-300 text-xs md:text-sm font-bold leading-snug line-clamp-2 group-hover:text-red-500 transition-colors min-h-[2.5em]">
+                            <h4 className="text-gray-300 text-xs md:text-sm font-bold leading-snug line-clamp-2 group-hover:text-red-500 transition-colors min-h-[2.5em] mt-2">
                                 {item.comic_name}
                             </h4>
                         </Link>
 
+                        {/* Nút xóa */}
                         <button 
                             onClick={(e) => openDeleteModal(e, item)}
                             className="absolute top-1 left-1 w-8 h-8 rounded-full bg-black/60 hover:bg-red-600 text-gray-300 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-lg z-20 scale-90 group-hover:scale-100"
