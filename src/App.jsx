@@ -20,6 +20,7 @@ import CategoryPage from './pages/CategoryPage';
 import ListPage from './pages/ListPage';
 import NotFoundPage from './pages/NotFoundPage'; 
 import AboutPage from './pages/AboutPage'; 
+import SearchPage from './pages/SearchPage';
 
 // --- ADMIN PAGES ---
 import DashboardPage from './pages/admin/DashboardPage';
@@ -55,6 +56,7 @@ function App() {
         <Route path="/the-loai/:slug" element={<CategoryPage />} />
         <Route path="/danh-sach" element={<ListPage />} />
         <Route path="/xep-hang" element={<RankingPage />} />
+        <Route path="/tim-kiem" element={<SearchPage />} />
         
         {/* --- AUTHENTICATED ROUTES (Không cần ProtectedRoute vì logic đã được handle bên trong từng Page) --- */}
         <Route path="/profile" element={<ProfilePage />} />
