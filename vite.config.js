@@ -12,6 +12,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         // 🔑 Dòng Đã Thêm: Loại bỏ tiền tố '/api' trước khi gửi đến Backend
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
     // Thêm dòng này để cho phép domain giả
