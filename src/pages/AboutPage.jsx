@@ -2,27 +2,26 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/layouts/Header';
 import Footer from '../components/layouts/Footer';
-import { useAuth } from '../contexts/AuthContext'; // Import Auth Context
-import Toast from '../components/common/Toast'; // Import Toast Component
+import { useAuth } from '../contexts/AuthContext';
+import Toast from '../components/common/Toast';
+// 1. XÓA RiCoffeeLine ở dòng này
 import {
   RiRocketLine, RiUserHeartLine, RiBookOpenLine,
   RiGlobalLine, RiShieldCheckLine, RiFlashlightLine,
-  RiSmartphoneLine, RiAppleFill, RiAndroidFill, RiCoffeeLine
+  RiSmartphoneLine, RiAppleFill, RiAndroidFill
 } from 'react-icons/ri';
+// 2. THÊM dòng này
 import { FaCoffee } from 'react-icons/fa';
 
 const AboutPage = () => {
-  const { user } = useAuth(); // Lấy thông tin user từ context
-  const navigate = useNavigate(); // Hook điều hướng
-  const [toast, setToast] = useState(null); // State quản lý Toast thông báo
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [toast, setToast] = useState(null);
 
-  // Hàm xử lý khi bấm nút Đăng nhập/Đăng ký
   const handleAuthAction = (path) => {
       if (user) {
-          // Nếu đã đăng nhập -> Hiện Toast thông báo
           setToast({ message: 'Bạn đã đăng nhập rồi nhé!', type: 'info' });
       } else {
-          // Chưa đăng nhập -> Chuyển trang đến path tương ứng (/login hoặc /register)
           navigate(path);
       }
   };
@@ -33,11 +32,9 @@ const AboutPage = () => {
       
       <main className="flex-grow">
         
-        {/* --- HERO SECTION --- */}
+        {/* --- HERO SECTION (Giữ nguyên) --- */}
         <div className="relative py-20 px-6 text-center overflow-hidden">
-            {/* Background Effect */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
-            
             <div className="relative z-10 max-w-3xl mx-auto animate-fade-in-up">
                 <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
                     Khám Phá Thế Giới <br/>
@@ -52,7 +49,7 @@ const AboutPage = () => {
             </div>
         </div>
 
-        {/* --- STATS SECTION --- */}
+        {/* --- STATS SECTION (Giữ nguyên) --- */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
@@ -72,7 +69,7 @@ const AboutPage = () => {
             </div>
         </div>
 
-        {/* --- MISSION & VISION --- */}
+        {/* --- MISSION & VISION (Giữ nguyên) --- */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                 <div className="relative">
@@ -125,7 +122,7 @@ const AboutPage = () => {
             </div>
         </div>
 
-        {/* --- PWA INSTALL GUIDE --- */}
+        {/* --- PWA INSTALL GUIDE (Giữ nguyên) --- */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
             <div className="bg-[#1a1a2e] border border-white/5 rounded-3xl p-8 md:p-12 relative overflow-hidden">
                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
@@ -169,6 +166,7 @@ const AboutPage = () => {
         {/* --- DONATE SECTION --- */}
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 text-center">
              <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-full text-sm font-bold mb-6">
+                {/* 3. THAY THẾ RiCoffeeLine bằng FaCoffee */}
                 <FaCoffee /> Ủng Hộ Dự Án
             </div>
             <h2 className="text-3xl font-black text-white mb-6">
@@ -197,7 +195,7 @@ const AboutPage = () => {
             </div>
         </div>
 
-        {/* --- CALL TO ACTION (Đã cập nhật logic) --- */}
+        {/* --- CALL TO ACTION (Giữ nguyên logic đã sửa) --- */}
         <div className="max-w-5xl mx-auto px-4 mb-20">
             <div className="bg-gradient-to-r from-[#1a1a2e] to-[#252538] rounded-3xl p-10 text-center border border-white/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
@@ -207,7 +205,6 @@ const AboutPage = () => {
                     Đăng ký tài khoản ngay hôm nay để lưu tủ truyện, nhận thông báo chương mới và tham gia cộng đồng.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
-                    {/* Sử dụng button và gọi hàm handleAuthAction */}
                     <button onClick={() => handleAuthAction('/register')} className="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
                         Đăng Ký Miễn Phí
                     </button>
@@ -221,7 +218,6 @@ const AboutPage = () => {
       </main>
       <Footer />
       
-      {/* Hiển thị Toast nếu có */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
