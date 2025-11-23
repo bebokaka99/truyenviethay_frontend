@@ -9,12 +9,17 @@ import {
   RiLogoutBoxRLine, RiArrowDownSLine, 
   RiUserSettingsLine, RiAdminLine,
   RiNotification3Line, RiLayoutGridFill, RiTrophyFill,
-  RiArrowRightSLine // Thêm icon mũi tên
+  RiArrowRightSLine
 } from 'react-icons/ri';
 
-// SỬ DỤNG BIẾN MÔI TRƯỜNG ĐÃ THIẾT LẬP
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const BACKEND_ROOT_URL = BASE_URL.replace('/api', '');
+// --- CẤU HÌNH URL BACKEND (SỬA LẠI) ---
+// Tự động phát hiện môi trường:
+// - Nếu là PROD (Deploy): Dùng link Render
+// - Nếu là DEV (Local): Dùng localhost hoặc IP máy
+const BACKEND_URL = import.meta.env.PROD 
+  ? 'https://truyenviethay-backend.onrender.com' 
+  : 'http://localhost:5000'; 
+// (Lưu ý: Nếu bạn chạy local trên IP 192.168... thì sửa dòng http://localhost:5000 ở trên thành IP đó)
 
 const Header = () => {
   const [categories, setCategories] = useState([]);
@@ -29,16 +34,19 @@ const Header = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Hàm lấy ảnh Avatar (Dùng BACKEND_URL gốc)
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     if (avatarPath.startsWith('http')) return avatarPath;
-    return `${BACKEND_ROOT_URL}/${avatarPath}`; 
+    // Nối URL Backend với đường dẫn ảnh
+    return `${BACKEND_URL}/${avatarPath.replace(/^\//, '')}`; 
   };
 
   const fetchNotifications = async () => {
     if (!user) return;
     try {
       const token = localStorage.getItem('user_token');
+      // Axios đã được config baseURL ở main.jsx, nên chỉ cần gọi /notifications
       const res = await axios.get('/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -67,10 +75,10 @@ const Header = () => {
       } catch (error) { console.error(error); }
     };
     fetchCategories();
-    // Gọi fetch ngay khi mount và mỗi khi user thay đổi
+    
     if (user) fetchNotifications();
     
-    // (Tùy chọn) Polling: Tự động check thông báo mỗi 30s
+    // Polling: Check mỗi 30s
     const interval = setInterval(() => {
         if (user) fetchNotifications();
     }, 30000);
@@ -135,7 +143,7 @@ const Header = () => {
             {user ? (
                 <div className="flex items-center gap-4">
                     {/* Notification Desktop */}
-                    <div className="relative group" onMouseEnter={handleReadNotify}>
+                    <div className="relative group hidden lg:block" onMouseEnter={handleReadNotify}>
                         <button className="w-9 h-9 rounded-full bg-[#252538] hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/5 relative">
                             <RiNotification3Line size={18} />
                             {unreadCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
@@ -144,11 +152,11 @@ const Header = () => {
                             <div className="p-3 border-b border-white/5 flex justify-between items-center bg-white/5"><h4 className="text-white font-bold text-sm">Thông Báo</h4></div>
                             <div className="max-h-60 overflow-y-auto custom-scrollbar">
                                 {notifications.length > 0 ? notifications.map(notif => (
-                                    <div key={notif.id} className={`p-3 border-b border-white/5 transition-colors ${notif.is_read ? 'opacity-50' : 'bg-white/5'}`}>
+                                    <Link to={notif.link || '#'} key={notif.id} className={`block p-3 border-b border-white/5 transition-colors ${notif.is_read ? 'opacity-50 hover:bg-white/5' : 'bg-white/5 hover:bg-white/10'}`}>
                                         <p className="text-xs text-gray-200 font-bold mb-1">{notif.title}</p>
                                         <p className="text-xs text-gray-400 line-clamp-2">{notif.message}</p>
                                         <span className="text-[9px] text-gray-600 mt-1 block">{new Date(notif.created_at).toLocaleString('vi-VN')}</span>
-                                    </div>
+                                    </Link>
                                 )) : <p className="text-center text-gray-500 text-xs p-4">Chưa có thông báo nào.</p>}
                             </div>
                             <Link to="/thong-bao" className="block text-center text-xs text-gray-400 hover:text-white py-2 bg-white/5 hover:bg-white/10 transition-colors">Xem tất cả</Link>
@@ -156,7 +164,7 @@ const Header = () => {
                     </div>
 
                     {/* User Menu Desktop */}
-                    <div className="relative">
+                    <div className="relative hidden lg:block">
                         <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 bg-[#252538] hover:bg-white/10 border border-white/5 rounded-full py-1 pr-3 pl-1 transition-all">
                             <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-700 border border-white/10">
                                 {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt="Avt" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-bold text-white bg-gradient-to-tr from-primary to-purple-600">{user.full_name?.charAt(0).toUpperCase()}</div>}
@@ -186,23 +194,40 @@ const Header = () => {
                     <Link to="/register" className="bg-primary hover:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors shadow-lg shadow-primary/20">Đăng ký</Link>
                 </div>
             )}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden text-white text-2xl p-1">{mobileMenuOpen ? <RiCloseLine /> : <RiMenu3Line />}</button>
+            {/* Nút mở Menu Mobile */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden text-white text-2xl p-1 relative">
+                {mobileMenuOpen ? <RiCloseLine /> : <RiMenu3Line />}
+                {/* Chấm đỏ báo hiệu ở menu hamburger nếu có notif */}
+                {!mobileMenuOpen && unreadCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* --- MOBILE MENU (Đã thiết kế lại) --- */}
+      {/* --- MOBILE MENU (Fixed Layout) --- */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#1a1a2e] border-t border-white/10 absolute w-full shadow-2xl z-50 h-[calc(100vh-64px)] overflow-y-auto pb-20 animate-fade-in-left">
            <div className="p-4 flex flex-col gap-3">
               
-              {/* Search Mobile */}
+              {user && (
+                  <div className="flex items-center gap-3 bg-[#252538] p-3 rounded-xl border border-white/5 mb-2">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10">
+                          {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt="Avt" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-bold text-white bg-gradient-to-tr from-primary to-purple-600">{user.full_name?.charAt(0).toUpperCase()}</div>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                          <p className="text-white font-bold text-sm truncate">{user.full_name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                              <LevelBadge exp={user.exp} rankStyle={user.rank_style} role={user.role} />
+                          </div>
+                      </div>
+                  </div>
+              )}
+
               <div className="flex items-center bg-[#252538] rounded-xl px-4 py-3 mb-2 border border-white/5 focus-within:border-primary/50 transition-colors">
                  <RiSearchLine className="text-gray-400 text-lg" />
                  <input type="text" placeholder="Tìm kiếm truyện..." className="bg-transparent border-none focus:outline-none text-sm text-white px-3 w-full" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleSearch} />
               </div>
 
-              {/* Menu Items */}
               <Link to="/" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                   <span>Trang Chủ</span>
                   <RiArrowRightSLine className="text-gray-600" />
@@ -222,21 +247,21 @@ const Header = () => {
 
               {user ? (
                   <>
-                    {/* --- NÚT THÔNG BÁO MOBILE (Thiết kế mới) --- */}
-                    <Link to="/thong-bao" className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors group" onClick={() => { setMobileMenuOpen(false); handleReadNotify(); }}>
+                    {/* Nút thông báo Mobile */}
+                    <Link to="/thong-bao" className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors" onClick={() => { setMobileMenuOpen(false); handleReadNotify(); }}>
                         <div className="flex items-center gap-3">
                             <div className="relative">
                                 <RiNotification3Line className="text-primary text-lg" />
                                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
                             </div>
-                            <span className="text-gray-300 font-bold group-hover:text-white">Thông Báo</span>
+                            <span className="text-white font-bold">Thông Báo</span>
                         </div>
                         {unreadCount > 0 ? (
-                            <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm shadow-red-500/50">
-                                {unreadCount > 99 ? '99+' : unreadCount}
+                            <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-sm shadow-red-500/50">
+                                {unreadCount} Mới
                             </span>
                         ) : (
-                            <RiArrowRightSLine className="text-gray-600" />
+                            <span className="text-xs text-gray-500">Không có mới</span>
                         )}
                     </Link>
 
