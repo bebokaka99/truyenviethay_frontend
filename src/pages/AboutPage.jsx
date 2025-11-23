@@ -181,16 +181,16 @@ const AboutPage = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="Momo" className="h-10 mx-auto mb-4 filter grayscale group-hover:grayscale-0 transition-all" />
                     <h4 className="text-white font-bold mb-2">Ví MoMo</h4>
-                    <p className="text-xl text-pink-500 font-black">0987654321</p>
-                    <p className="text-sm text-gray-500">(Nguyen Van A)</p>
+                    <p className="text-xl text-pink-500 font-black">0941434669</p>
+                    <p className="text-sm text-gray-500">Trần Ngọc Quỳnh</p>
                 </div>
                 
                 <div className="bg-[#1a1a2e] border border-white/5 rounded-2xl p-6 hover:border-blue-500/50 transition-colors group relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/40/JPMorgan_Chase.svg" alt="Bank" className="h-10 mx-auto mb-4 filter grayscale group-hover:grayscale-0 transition-all" />
+                    <img src="/mbbank.png" alt="Bank" className="h-10 mx-auto mb-4 filter grayscale group-hover:grayscale-0 transition-all" />
                     <h4 className="text-white font-bold mb-2">Ngân Hàng MB Bank</h4>
-                    <p className="text-xl text-blue-500 font-black">123456789</p>
-                    <p className="text-sm text-gray-500">(Nguyen Van A)</p>
+                    <p className="text-xl text-blue-500 font-black">03092004002211</p>
+                    <p className="text-sm text-gray-500">Trần Ngọc Quỳnh</p>
                 </div>
             </div>
         </div>
