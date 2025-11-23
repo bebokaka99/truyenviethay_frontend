@@ -218,6 +218,8 @@ const Header = () => {
             {/* Nút mở Menu Mobile (Hamburger) */}
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden text-white text-2xl p-1 relative">
                 {mobileMenuOpen ? <RiCloseLine /> : <RiMenu3Line />}
+                {/* Chấm đỏ báo hiệu ở menu hamburger nếu có notif */}
+                {!mobileMenuOpen && unreadCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
             </button>
           </div>
         </div>
