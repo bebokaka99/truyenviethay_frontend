@@ -7,7 +7,8 @@ import Footer from '../components/layouts/Footer';
 import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection';
 import StarRating from '../components/common/StarRating';
-import Toast from '../components/common/Toast'; // <--- IMPORT TOAST
+import Toast from '../components/common/Toast';
+import SEO from '../components/common/SEO'; // <--- IMPORT SEO MỚI
 import { 
   RiBookOpenLine, RiBookmarkLine, RiUser3Line, RiTimeLine, 
   RiFileList2Line, RiListCheck, RiSortDesc, RiSortAsc, 
@@ -43,8 +44,8 @@ const ComicDetailPage = () => {
   // State Đánh Giá (Rating)
   const [ratingInfo, setRatingInfo] = useState({ average: 0, total: 0, user_score: 0 });
 
-  // --- STATE TOAST (Thông báo nổi) ---
-  const [toast, setToast] = useState(null); // null | { message, type }
+  // State Toast
+  const [toast, setToast] = useState(null); 
 
   // Hàm hiển thị Toast tiện lợi
   const showToast = (message, type = 'success') => {
@@ -89,7 +90,6 @@ const ComicDetailPage = () => {
 
   // 2. Check Follow, History & Rating
   useEffect(() => {
-      // Gọi API Rating (Không cần login cũng xem được điểm TB)
       const fetchRating = async () => {
         try {
             const userId = user ? user.id : '';
@@ -133,7 +133,7 @@ const ComicDetailPage = () => {
           if (isFollowed) {
               await axios.delete(`/api/user/library/${slug}`, { headers });
               setIsFollowed(false);
-              showToast("Đã bỏ theo dõi truyện!", "error"); // Thông báo đỏ khi bỏ theo dõi
+              showToast("Đã bỏ theo dõi truyện!", "error");
           } else {
               await axios.post('/api/user/library', {
                   comic_slug: slug,
@@ -142,7 +142,7 @@ const ComicDetailPage = () => {
                   latest_chapter: latestChapterApi 
               }, { headers });
               setIsFollowed(true);
-              showToast("Đã thêm vào tủ truyện!", "success"); // Thông báo xanh khi theo dõi
+              showToast("Đã thêm vào tủ truyện!", "success");
           }
       } catch (error) { 
           console.error(error); 
@@ -167,7 +167,6 @@ const ComicDetailPage = () => {
               user_score: score
           }));
           
-          // ✅ Hiển thị Toast thay vì Alert
           showToast(`Đánh giá ${score} sao thành công!`, "success");
 
       } catch (e) { 
@@ -177,13 +176,12 @@ const ComicDetailPage = () => {
 
   const handleSubmitReport = () => {
       if (!reportReason) return;
-      // Gọi API Report thật nếu muốn
       setReportSent(true);
       setTimeout(() => {
           setReportSent(false);
           setShowReportModal(false);
           setReportReason('');
-          showToast("Cảm ơn bạn đã báo lỗi!", "success"); // Thêm Toast khi báo lỗi xong
+          showToast("Cảm ơn bạn đã báo lỗi!", "success");
       }, 2000);
   };
 
@@ -203,8 +201,28 @@ const ComicDetailPage = () => {
   
   const firstStoryChap = chapters.length > 0 ? [...chapters].sort((a,b) => parseFloat(a.chapter_name) - parseFloat(b.chapter_name))[0] : null;
 
+  // --- CHUẨN BỊ DỮ LIỆU SEO ---
+  const seoData = comic ? {
+      title: comic.name,
+      // Loại bỏ thẻ HTML và cắt ngắn mô tả để làm meta description
+      description: comic.content?.replace(/<[^>]+>/g, '').substring(0, 160) + '...',
+      image: coverImage,
+      url: `/truyen-tranh/${slug}`
+  } : null;
+
   return (
     <div className="min-h-screen w-full bg-[#101022] font-display text-gray-300 pb-20">
+      
+      {/* TÍCH HỢP SEO VÀO ĐÂY */}
+      {seoData && (
+          <SEO 
+              title={seoData.title}
+              description={seoData.description}
+              image={seoData.image}
+              url={seoData.url}
+          />
+      )}
+
       <Header />
       
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
@@ -242,7 +260,6 @@ const ComicDetailPage = () => {
 
                 {/* --- KHU VỰC ĐÁNH GIÁ (RATING) --- */}
                 <div className="mt-4 p-3 bg-[#1a1a2e] border border-white/10 rounded-xl max-w-md mx-auto md:mx-0">
-                    {/* Hàng 1: Điểm Trung Bình & Tổng lượt */}
                     <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
                         <span className="text-3xl font-black text-yellow-500 leading-none">
                             {ratingInfo.average || "0.0"}
@@ -259,7 +276,6 @@ const ComicDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* Hàng 2: User Vote */}
                     <div className="border-t border-white/5 pt-2 flex items-center justify-between gap-4">
                         <span className="text-xs text-gray-300 font-bold">
                             {user ? "Bạn chấm mấy điểm?" : "Đăng nhập để chấm điểm"}
@@ -397,7 +413,7 @@ const ComicDetailPage = () => {
 
       <Footer />
 
-      {/* --- TOAST NOTIFICATION --- */}
+      {/* Toast Notification */}
       {toast && (
         <Toast 
           message={toast.message} 
