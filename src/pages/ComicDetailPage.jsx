@@ -1,4 +1,3 @@
-//SEO
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -9,7 +8,7 @@ import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection';
 import StarRating from '../components/common/StarRating';
 import Toast from '../components/common/Toast';
-import SEO from '../components/common/SEO'; // <--- IMPORT SEO MỚI
+import SEO from '../components/common/SEO'; // Import SEO
 import { 
   RiBookOpenLine, RiBookmarkLine, RiUser3Line, RiTimeLine, 
   RiFileList2Line, RiListCheck, RiSortDesc, RiSortAsc, 
@@ -175,15 +174,40 @@ const ComicDetailPage = () => {
       }
   };
 
-  const handleSubmitReport = () => {
+  // --- HÀM GỬI BÁO CÁO THẬT (ĐÃ FIX) ---
+  const handleSubmitReport = async () => {
       if (!reportReason) return;
-      setReportSent(true);
-      setTimeout(() => {
-          setReportSent(false);
-          setShowReportModal(false);
-          setReportReason('');
-          showToast("Cảm ơn bạn đã báo lỗi!", "success");
-      }, 2000);
+
+      // Kiểm tra đăng nhập
+      if (!user) {
+          setShowLoginModal(true);
+          return;
+      }
+
+      try {
+          const token = localStorage.getItem('user_token');
+          // Gọi API Backend thật để lưu vào DB
+          await axios.post('/api/reports', {
+              comic_slug: slug,
+              chapter_name: 'Trang Chi Tiết', // Ghi chú đây là lỗi chung của truyện
+              reason: reportReason
+          }, { 
+              headers: { Authorization: `Bearer ${token}` } 
+          });
+
+          // Thành công -> Hiển thị UI
+          setReportSent(true);
+          setTimeout(() => {
+              setReportSent(false);
+              setShowReportModal(false);
+              setReportReason('');
+              showToast("Đã gửi báo lỗi thành công!", "success");
+          }, 2000);
+
+      } catch (error) {
+          console.error("Lỗi gửi báo cáo:", error);
+          showToast("Gửi thất bại. Vui lòng thử lại!", "error");
+      }
   };
 
   if (loading) return <div className="min-h-screen bg-[#101022] flex items-center justify-center"><div className="w-10 h-10 border-2 border-t-primary rounded-full animate-spin"></div></div>;
@@ -205,7 +229,6 @@ const ComicDetailPage = () => {
   // --- CHUẨN BỊ DỮ LIỆU SEO ---
   const seoData = comic ? {
       title: comic.name,
-      // Loại bỏ thẻ HTML và cắt ngắn mô tả để làm meta description
       description: comic.content?.replace(/<[^>]+>/g, '').substring(0, 160) + '...',
       image: coverImage,
       url: `/truyen-tranh/${slug}`
@@ -214,7 +237,7 @@ const ComicDetailPage = () => {
   return (
     <div className="min-h-screen w-full bg-[#101022] font-display text-gray-300 pb-20">
       
-      {/* TÍCH HỢP SEO VÀO ĐÂY */}
+      {/* TÍCH HỢP SEO */}
       {seoData && (
           <SEO 
               title={seoData.title}
