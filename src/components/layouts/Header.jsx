@@ -251,7 +251,7 @@ const Header = () => {
               <Link to="/" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>Trang Chủ</Link>
               <Link to="/danh-sach" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}><RiLayoutGridFill className="text-primary"/> Thể Loại</Link>
               <Link to="/xep-hang" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}><RiTrophyFill className="text-primary"/> Xếp Hạng</Link>
-
+              <Link to="/about" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}><RiTrophyFill className="text-primary"/> Giới Thiệu</Link>
               <div className="border-t border-white/5 my-1"></div>
 
               {user ? (
