@@ -12,14 +12,8 @@ import {
   RiArrowRightSLine
 } from 'react-icons/ri';
 
-// --- CẤU HÌNH URL BACKEND (SỬA LẠI) ---
-// Tự động phát hiện môi trường:
-// - Nếu là PROD (Deploy): Dùng link Render
-// - Nếu là DEV (Local): Dùng localhost hoặc IP máy
-const BACKEND_URL = import.meta.env.PROD 
-  ? 'https://truyenviethay-backend.onrender.com' 
-  : 'http://localhost:5000'; 
-// (Lưu ý: Nếu bạn chạy local trên IP 192.168... thì sửa dòng http://localhost:5000 ở trên thành IP đó)
+// --- CẤU HÌNH URL CHO MOI TRUONG DEPLOY ---
+const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
 
 const Header = () => {
   const [categories, setCategories] = useState([]);
@@ -34,11 +28,10 @@ const Header = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Hàm lấy ảnh Avatar (Dùng BACKEND_URL gốc)
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     if (avatarPath.startsWith('http')) return avatarPath;
-    // Nối URL Backend với đường dẫn ảnh
+    // Xử lý nối chuỗi an toàn
     return `${BACKEND_URL}/${avatarPath.replace(/^\//, '')}`; 
   };
 
@@ -46,8 +39,10 @@ const Header = () => {
     if (!user) return;
     try {
       const token = localStorage.getItem('user_token');
-      // Axios đã được config baseURL ở main.jsx, nên chỉ cần gọi /notifications
-      const res = await axios.get('/notifications', {
+      // Gọi API qua axios (đã config baseURL hoặc gọi thẳng)
+      // Ở đây dùng relative path vì axios ở main.jsx đã có thể config, 
+      // nhưng để chắc chắn với code cũ của bạn, ta cứ gọi relative
+      const res = await axios.get('/api/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(res.data.items);
@@ -59,7 +54,7 @@ const Header = () => {
     if (unreadCount > 0) {
       try {
         const token = localStorage.getItem('user_token');
-        await axios.put('/notifications/read-all', {}, {
+        await axios.put('/api/notifications/read-all', {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUnreadCount(0);
@@ -78,7 +73,7 @@ const Header = () => {
     
     if (user) fetchNotifications();
     
-    // Polling: Check mỗi 30s
+    // Polling: Tự động check thông báo mỗi 30s
     const interval = setInterval(() => {
         if (user) fetchNotifications();
     }, 30000);
@@ -109,6 +104,7 @@ const Header = () => {
              <img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain" />
           </Link>
 
+          {/* --- DESKTOP NAVIGATION --- */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             <Link to="/" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider transition-colors">Trang Chủ</Link>
             <div className="group relative py-4">
@@ -142,7 +138,7 @@ const Header = () => {
             
             {user ? (
                 <div className="flex items-center gap-4">
-                    {/* Notification Desktop */}
+                    {/* Notification Desktop (Dropdown) */}
                     <div className="relative group hidden lg:block" onMouseEnter={handleReadNotify}>
                         <button className="w-9 h-9 rounded-full bg-[#252538] hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/5 relative">
                             <RiNotification3Line size={18} />
@@ -194,21 +190,23 @@ const Header = () => {
                     <Link to="/register" className="bg-primary hover:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors shadow-lg shadow-primary/20">Đăng ký</Link>
                 </div>
             )}
-            {/* Nút mở Menu Mobile */}
+            
+            {/* Mobile Menu Button */}
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden text-white text-2xl p-1 relative">
                 {mobileMenuOpen ? <RiCloseLine /> : <RiMenu3Line />}
-                {/* Chấm đỏ báo hiệu ở menu hamburger nếu có notif */}
+                {/* Chấm đỏ nhỏ nếu có notif khi menu đóng */}
                 {!mobileMenuOpen && unreadCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
             </button>
           </div>
         </div>
       </div>
 
-      {/* --- MOBILE MENU (Fixed Layout) --- */}
+      {/* --- MOBILE MENU (Được thiết kế lại hoàn toàn) --- */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#1a1a2e] border-t border-white/10 absolute w-full shadow-2xl z-50 h-[calc(100vh-64px)] overflow-y-auto pb-20 animate-fade-in-left">
            <div className="p-4 flex flex-col gap-3">
               
+              {/* User Info Mobile */}
               {user && (
                   <div className="flex items-center gap-3 bg-[#252538] p-3 rounded-xl border border-white/5 mb-2">
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10">
@@ -223,6 +221,7 @@ const Header = () => {
                   </div>
               )}
 
+              {/* Search */}
               <div className="flex items-center bg-[#252538] rounded-xl px-4 py-3 mb-2 border border-white/5 focus-within:border-primary/50 transition-colors">
                  <RiSearchLine className="text-gray-400 text-lg" />
                  <input type="text" placeholder="Tìm kiếm truyện..." className="bg-transparent border-none focus:outline-none text-sm text-white px-3 w-full" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleSearch} />
@@ -247,7 +246,8 @@ const Header = () => {
 
               {user ? (
                   <>
-                    {/* Nút thông báo Mobile */}
+                    {/* --- MỤC THÔNG BÁO RIÊNG BIỆT (MOBILE) --- */}
+                    {/* Thay vì mở dropdown, ta chuyển hướng sang trang /thong-bao */}
                     <Link to="/thong-bao" className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors" onClick={() => { setMobileMenuOpen(false); handleReadNotify(); }}>
                         <div className="flex items-center gap-3">
                             <div className="relative">
@@ -258,7 +258,7 @@ const Header = () => {
                         </div>
                         {unreadCount > 0 ? (
                             <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-sm shadow-red-500/50">
-                                {unreadCount} Mới
+                                {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                         ) : (
                             <span className="text-xs text-gray-500">Không có mới</span>
