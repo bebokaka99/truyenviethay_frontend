@@ -5,16 +5,15 @@ import {
     RiDashboardLine, RiArrowLeftLine, RiDeleteBinLine, 
     RiErrorWarningLine, RiProhibitedLine, RiCheckLine, 
     RiShieldUserLine, RiSearchLine, RiFilter3Line, RiCloseLine,
-    RiFlag2Line, RiChat1Line, RiUser3Line, RiBookOpenLine,
+    RiFlag2Line, RiChat1Line, RiUser3Line,
     RiTaskLine, RiAddLine, RiEditLine, 
     RiBookmarkLine, RiGlobalLine, RiDownloadCloud2Line,
-    RiBarChartFill
+    RiBarChartFill, RiSave3Line // <--- ĐÃ THÊM ICON NÀY
 } from 'react-icons/ri';
 
 const DashboardPage = () => {
-  const [activeTab, setActiveTab] = useState('dashboard'); // Tab mặc định là Dashboard tổng quan
+  const [activeTab, setActiveTab] = useState('dashboard'); 
   const [data, setData] = useState([]);
-  const [stats, setStats] = useState({ users: 0, reports: 0, comments: 0, quests: 0 });
   const [loading, setLoading] = useState(true);
   
   // --- State chung ---
@@ -46,16 +45,11 @@ const DashboardPage = () => {
           const headers = { Authorization: `Bearer ${token}` };
           let res;
 
-          // Logic gọi API theo Tab
           if (activeTab === 'users') res = await axios.get('/api/user/admin/users', { headers });
           else if (activeTab === 'reports') res = await axios.get('/api/reports/admin/all', { headers });
           else if (activeTab === 'comments') res = await axios.get('/api/comments/admin/all', { headers });
           else if (activeTab === 'quests') res = await axios.get('/api/quests/admin/all', { headers });
           else if (activeTab === 'comics') res = await axios.get('/api/user/admin/comics', { headers });
-          
-          // Tab Dashboard (Thống kê sơ bộ)
-          // Nếu bạn chưa có API stats riêng, ta có thể ước lượng từ các API list hoặc tạo API mới sau
-          // Ở đây mình giả lập đếm số lượng nếu đang ở các tab khác
           
           if (activeTab === 'comics') setManagedComics(res.data);
           else if (activeTab !== 'dashboard') setData(res.data);
@@ -69,9 +63,7 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
-      if (activeTab !== 'dashboard') {
-        fetchData();
-      }
+      if (activeTab !== 'dashboard') fetchData();
       setSearchTerm('');
       setExternalResults([]); 
       setExternalSearch('');
@@ -110,22 +102,15 @@ const DashboardPage = () => {
   const openBanModal = (user) => { setSelectedUser(user); setShowBanModal(true); };
   const confirmBan = async () => { if (!selectedUser) return; try { const token = localStorage.getItem('user_token'); await axios.post(`/api/user/admin/users/${selectedUser.id}/ban`, { days: parseInt(banDays) }, { headers: { Authorization: `Bearer ${token}` } }); alert('Đã chặn!'); setShowBanModal(false); fetchData(); } catch(e) { alert('Lỗi'); } };
   
-  // XỬ LÝ BÁO LỖI (Report)
-  const handleResolveReport = async (id) => { 
-      if(!window.confirm('Đánh dấu đã xử lý và xóa báo cáo này?')) return; 
-      try { 
-          const token = localStorage.getItem('user_token'); 
-          await axios.delete(`/api/reports/admin/${id}`, { headers: { Authorization: `Bearer ${token}` } }); 
-          setData(prev => prev.filter(r => r.id !== id)); 
-      } catch(e) { alert('Lỗi server'); } 
-  };
-
+  const handleResolveReport = async (id) => { if(!window.confirm('Đã xử lý xong?')) return; try { const token = localStorage.getItem('user_token'); await axios.delete(`/api/reports/admin/${id}`, { headers: { Authorization: `Bearer ${token}` } }); setData(prev => prev.filter(r => r.id !== id)); } catch(e) { alert('Lỗi server'); } };
   const handleDeleteComment = async (id) => { if(!window.confirm('Xóa bình luận?')) return; try { const token = localStorage.getItem('user_token'); await axios.delete(`/api/comments/admin/${id}`, { headers: { Authorization: `Bearer ${token}` } }); setData(prev => prev.filter(c => c.id !== id)); } catch(e) { alert('Lỗi'); } };
   const handleDeleteQuest = async (id) => { if(!window.confirm('Xóa nhiệm vụ?')) return; try { const token = localStorage.getItem('user_token'); await axios.delete(`/api/quests/admin/${id}`, { headers: { Authorization: `Bearer ${token}` } }); setData(prev => prev.filter(q => q.id !== id)); } catch(e) { alert('Lỗi'); } };
 
-  // Quest & Comic Actions (Giữ nguyên logic cũ)
+  // Quest Actions
   const openQuestModal = (quest = null) => { if (quest) { setQuestForm(quest); setIsEditingQuest(true); } else { setQuestForm({ id: null, quest_key: '', name: '', description: '', target_count: 1, reward_exp: 10, type: 'daily', action_type: 'read' }); setIsEditingQuest(false); } setShowQuestModal(true); };
   const handleSubmitQuest = async (e) => { e.preventDefault(); try { const token = localStorage.getItem('user_token'); const headers = { Authorization: `Bearer ${token}` }; if (isEditingQuest) await axios.put(`/api/quests/admin/${questForm.id}`, questForm, { headers }); else await axios.post('/api/quests/admin', questForm, { headers }); setShowQuestModal(false); fetchData(); alert('Thành công!'); } catch (error) { alert(error.response?.data?.message || 'Lỗi'); } };
+
+  // Comic Actions
   const handleSearchOtruyen = async (e) => { e.preventDefault(); if (!externalSearch.trim()) return; setSearchingExternal(true); try { const res = await axios.get(`https://otruyenapi.com/v1/api/tim-kiem?keyword=${externalSearch}`); setExternalResults(res.data.data.items); } catch (error) { console.error(error); alert("Lỗi kết nối Otruyen"); } finally { setSearchingExternal(false); } };
   const selectExternalComic = (comic) => { setComicForm({ slug: comic.slug, name: comic.name, is_hidden: false, is_recommended: false }); setExternalResults([]); setExternalSearch(''); };
   const handleUpdateComic = async (e) => { e.preventDefault(); if (!comicForm.slug) return alert("Chưa nhập Slug!"); try { const token = localStorage.getItem('user_token'); await axios.post('/api/user/admin/comics', comicForm, { headers: { Authorization: `Bearer ${token}` } }); alert("Cập nhật thành công!"); fetchData(); setComicForm({ slug: '', name: '', is_hidden: false, is_recommended: false }); } catch (error) { alert("Lỗi cập nhật"); } };
@@ -136,7 +121,7 @@ const DashboardPage = () => {
     <div className="min-h-screen bg-[#0a0a16] text-gray-300 font-display flex">
         
         {/* SIDEBAR */}
-        <div className="w-64 bg-[#151525] border-r border-white/5 p-6 flex flex-col gap-6 fixed h-full z-20 overflow-y-auto">
+        <div className="w-64 bg-[#151525] border-r border-white/5 p-6 flex flex-col gap-6 fixed h-full z-20 overflow-y-auto no-scrollbar">
             <h1 className="text-2xl font-black text-white flex items-center gap-2"><RiShieldUserLine className="text-red-500" /> ADMIN</h1>
             <nav className="flex flex-col gap-2">
                 <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-3 rounded-lg font-bold cursor-pointer flex items-center gap-3 transition-colors ${activeTab === 'dashboard' ? 'bg-gray-700 text-white' : 'hover:bg-white/5'}`}><RiBarChartFill /> Tổng Quan</button>
@@ -158,27 +143,29 @@ const DashboardPage = () => {
                 {activeTab === 'quests' && <button onClick={() => openQuestModal()} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-all shadow-lg"><RiAddLine /> Thêm Mới</button>}
             </div>
 
-            {/* --- DASHBOARD STATS (TAB TỔNG QUAN) --- */}
+            {/* --- DASHBOARD STATS --- */}
             {activeTab === 'dashboard' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="bg-[#151525] p-6 rounded-xl border border-white/5 shadow-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="bg-[#151525] p-6 rounded-xl border border-white/5 shadow-lg hover:border-red-500/50 transition-all">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-2xl"><RiUser3Line /></div>
-                            <div><p className="text-gray-400 text-xs font-bold uppercase">Người dùng</p><h3 className="text-2xl font-black text-white">Quản lý</h3></div>
+                            <div><p className="text-gray-400 text-xs font-bold uppercase">Người dùng</p><h3 className="text-xl font-black text-white">Quản lý User</h3></div>
                         </div>
-                        <button onClick={() => setActiveTab('users')} className="text-red-500 text-xs font-bold mt-4 hover:underline">Xem chi tiết &rarr;</button>
+                        <button onClick={() => setActiveTab('users')} className="text-red-500 text-xs font-bold mt-4 hover:underline">Truy cập ngay &rarr;</button>
                     </div>
-                    <div className="bg-[#151525] p-6 rounded-xl border border-white/5 shadow-lg">
+                    <div className="bg-[#151525] p-6 rounded-xl border border-white/5 shadow-lg hover:border-yellow-500/50 transition-all">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-yellow-500/20 text-yellow-500 flex items-center justify-center text-2xl"><RiFlag2Line /></div>
-                            <div><p className="text-gray-400 text-xs font-bold uppercase">Báo lỗi</p><h3 className="text-2xl font-black text-white">Xử lý</h3></div>
+                            <div><p className="text-gray-400 text-xs font-bold uppercase">Báo lỗi</p><h3 className="text-xl font-black text-white">Xử lý Báo cáo</h3></div>
                         </div>
-                        <button onClick={() => setActiveTab('reports')} className="text-yellow-500 text-xs font-bold mt-4 hover:underline">Xem chi tiết &rarr;</button>
+                        <button onClick={() => setActiveTab('reports')} className="text-yellow-500 text-xs font-bold mt-4 hover:underline">Truy cập ngay &rarr;</button>
                     </div>
-                    {/* Thêm các card khác nếu muốn */}
-                    <div className="bg-[#151525] p-6 rounded-xl border border-white/5 shadow-lg col-span-1 md:col-span-2">
-                        <h3 className="text-white font-bold mb-2">Chào mừng Admin!</h3>
-                        <p className="text-gray-400 text-sm">Hệ thống đang hoạt động ổn định. Chọn một mục bên trái để bắt đầu quản lý.</p>
+                    <div className="bg-[#151525] p-6 rounded-xl border border-white/5 shadow-lg hover:border-purple-500/50 transition-all">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center text-2xl"><RiBookmarkLine /></div>
+                            <div><p className="text-gray-400 text-xs font-bold uppercase">Nội dung</p><h3 className="text-xl font-black text-white">Cấu hình Truyện</h3></div>
+                        </div>
+                        <button onClick={() => setActiveTab('comics')} className="text-purple-500 text-xs font-bold mt-4 hover:underline">Truy cập ngay &rarr;</button>
                     </div>
                 </div>
             )}
@@ -201,10 +188,9 @@ const DashboardPage = () => {
                 </div>
             )}
             
-            {/* TAB COMICS (GIAO DIỆN RIÊNG) */}
+            {/* TAB COMICS (GIAO DIỆN RIÊNG - LOGIC CŨ) */}
             {activeTab === 'comics' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Cột Trái: Cấu hình + Tìm kiếm nguồn */}
                     <div className="flex flex-col gap-8">
                         {/* Form Cấu Hình */}
                         <div className="bg-[#151525] p-6 rounded-xl border border-white/10 h-fit">
@@ -213,7 +199,6 @@ const DashboardPage = () => {
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">Slug Truyện</label>
                                     <input type="text" placeholder="VD: one-piece" value={comicForm.slug} onChange={e => setComicForm({...comicForm, slug: e.target.value})} className="w-full bg-[#252538] border border-white/10 rounded p-2 text-white mt-1 focus:border-primary outline-none" />
-                                    <p className="text-[10px] text-gray-600 mt-1">Lấy từ URL truyện.</p>
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">Tên Gợi Nhớ</label>
@@ -249,7 +234,7 @@ const DashboardPage = () => {
                          </div>
                     </div>
 
-                    {/* Cột Phải: Danh sách đã quản lý */}
+                    {/* Danh sách đã quản lý */}
                     <div className="lg:col-span-2 bg-[#151525] rounded-xl border border-white/5 overflow-hidden h-fit">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -287,7 +272,6 @@ const DashboardPage = () => {
                                 <tr className="bg-[#1f1f3a] text-white text-xs uppercase font-bold">
                                     <th className="p-4 border-b border-white/10 w-16">ID</th>
                                     {activeTab === 'users' && <><th className="p-4 border-b border-white/10">User Info</th><th className="p-4 border-b border-white/10 text-center">Role</th><th className="p-4 border-b border-white/10 text-center">Status</th><th className="p-4 border-b border-white/10 text-center">Warns</th></>}
-                                    {/* CỘT CHO TAB REPORTS */}
                                     {activeTab === 'reports' && <><th className="p-4 border-b border-white/10">Nội Dung Báo Lỗi</th><th className="p-4 border-b border-white/10">Người Báo</th></>}
                                     {activeTab === 'comments' && <><th className="p-4 border-b border-white/10">Nội Dung</th><th className="p-4 border-b border-white/10">User</th><th className="p-4 border-b border-white/10">Truyện</th></>}
                                     {activeTab === 'quests' && <><th className="p-4 border-b border-white/10">Tên</th><th className="p-4 border-b border-white/10">Action</th><th className="p-4 border-b border-white/10">Chu Kỳ</th><th className="p-4 border-b border-white/10">Mục Tiêu</th><th className="p-4 border-b border-white/10">XP</th></>}
@@ -299,7 +283,7 @@ const DashboardPage = () => {
                                     <tr key={item.id} className="border-b border-white/5 hover:bg-white/5 transition-colors text-sm">
                                         <td className="p-4 text-gray-500">#{item.id}</td>
                                         
-                                        {/* TAB USERS */}
+                                        {/* USERS */}
                                         {activeTab === 'users' && (
                                             <>
                                                 <td className="p-4"><div className="font-bold text-white">{item.full_name}</div><div className="text-xs text-gray-600">@{item.username}</div></td>
@@ -318,12 +302,12 @@ const DashboardPage = () => {
                                             </>
                                         )}
 
-                                        {/* TAB REPORTS (Đã sửa hiển thị) */}
+                                        {/* REPORTS (ĐÃ FIX DISPLAY) */}
                                         {activeTab === 'reports' && (
                                             <>
                                                 <td className="p-4">
-                                                    <div className="font-bold text-white">Truyện: {item.comic_slug}</div>
-                                                    {item.chapter_name && <div className="text-xs text-blue-400">Chương: {item.chapter_name}</div>}
+                                                    <div className="font-bold text-white text-xs">Truyện: {item.comic_slug}</div>
+                                                    {item.chapter_name && <div className="text-[10px] text-blue-400">Chương: {item.chapter_name}</div>}
                                                     <div className="text-sm text-red-400 mt-1 italic">"{item.reason}"</div>
                                                 </td>
                                                 <td className="p-4">
@@ -338,7 +322,7 @@ const DashboardPage = () => {
                                             </>
                                         )}
 
-                                        {/* TAB COMMENTS */}
+                                        {/* COMMENTS */}
                                         {activeTab === 'comments' && (
                                             <>
                                                 <td className="p-4"><div className="font-bold text-white max-w-xs truncate">{item.content}</div></td>
@@ -348,7 +332,7 @@ const DashboardPage = () => {
                                             </>
                                         )}
 
-                                        {/* TAB QUESTS */}
+                                        {/* QUESTS */}
                                         {activeTab === 'quests' && (
                                             <>
                                                 <td className="p-4"><div className="font-bold text-white">{item.name}</div><div className="text-[10px] text-gray-500">{item.quest_key}</div></td>
@@ -393,7 +377,7 @@ const DashboardPage = () => {
                 <div className="bg-[#1a1a2e] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl animate-scale-up">
                     <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">{isEditingQuest ? 'Sửa Nhiệm Vụ' : 'Thêm Nhiệm Vụ'}</h3>
                     <form onSubmit={handleSubmitQuest} className="flex flex-col gap-4">
-                        <div><label className="text-xs text-gray-500 font-bold uppercase">Hành Động</label><select value={questForm.action_type} onChange={e => { const act = e.target.value; setQuestForm({...questForm, action_type: act, quest_key: isEditingQuest ? questForm.quest_key : `${act}_${Date.now()}` }) }} disabled={isEditingQuest} className="w-full bg-[#252538] border border-white/10 rounded p-2 text-white cursor-pointer"><option value="read">Đọc Truyện</option><option value="comment">Bình Luận</option><option value="login">Đăng Nhập</option></select></div>
+                        <div><label className="text-xs text-gray-500 font-bold uppercase">Hành Động</label><select value={questForm.action_type} onChange={e => { const act = e.target.value; setQuestForm({...questForm, action_type: act, quest_key: isEditingQuest ? questForm.quest_key : `${act}_${Date.now()}` }) }} disabled={isEditingQuest} className="w-full bg-[#252538] border border-white/10 rounded p-2 text-white cursor-pointer"><option value="read">Đọc Truyện</option><option value="comment">Bình Luận</option><option value="login">Đăng Nhập</option><option value="streak">Streak</option></select></div>
                         <div><label className="text-xs text-gray-500 font-bold uppercase">Key</label><input type="text" disabled value={questForm.quest_key} className="w-full bg-[#1a1a2e] border border-white/10 rounded p-2 text-gray-500" /></div>
                         <div><label className="text-xs text-gray-500 font-bold uppercase">Tên</label><input type="text" required value={questForm.name} onChange={e => setQuestForm({...questForm, name: e.target.value})} className="w-full bg-[#252538] border border-white/10 rounded p-2 text-white" /></div>
                         <div><label className="text-xs text-gray-500 font-bold uppercase">Mô tả</label><input type="text" value={questForm.description} onChange={e => setQuestForm({...questForm, description: e.target.value})} className="w-full bg-[#252538] border border-white/10 rounded p-2 text-white" /></div>
