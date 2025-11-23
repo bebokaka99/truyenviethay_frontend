@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Header from '../components/layouts/Header';
 import Footer from '../components/layouts/Footer';
+import SkeletonCard from '../components/common/SkeletonCard'; // <--- IMPORT SKELETON
 import { 
   RiArrowRightSLine, RiLayoutGridFill, RiFilter3Line, 
   RiCloseLine, RiLoader4Line, RiErrorWarningLine, 
@@ -10,13 +11,13 @@ import {
 } from 'react-icons/ri';
 
 const ListPage = () => {
-  const { slug } = useParams(); // Lấy slug nếu đang ở route /the-loai/:slug
+  const { slug } = useParams(); // Slug thể loại
   const navigate = useNavigate();
   const location = useLocation();
 
   // --- CẤU HÌNH API ---
   const API_ENDPOINTS = {
-      NEW: 'truyen-moi',
+      NEW: 'truyen-moi',         
       ONGOING: 'dang-phat-hanh',
       COMPLETED: 'hoan-thanh',
       UPCOMING: 'sap-ra-mat'
@@ -38,21 +39,20 @@ const ListPage = () => {
   // Toggle Filter Panel
   const [showFilter, setShowFilter] = useState(false);
   
-  // 1. Bộ lọc thực tế (Đang áp dụng)
+  // --- FILTER STATE ---
   const [filter, setFilter] = useState({
-      status: 'all', 
+      status: 'all',       
       category: slug || '', 
-      sort: 'default' 
+      sort: 'default'      
   });
 
-  // 2. Bộ lọc tạm thời (Trên UI, chưa áp dụng)
   const [tempFilter, setTempFilter] = useState({
       status: 'all',
       category: slug || '',
       sort: 'default'
   });
 
-  // --- 1. INIT LOAD (Lấy danh sách thể loại) ---
+  // --- 1. INIT LOAD ---
   useEffect(() => {
     const fetchCats = async () => {
         try {
@@ -66,26 +66,22 @@ const ListPage = () => {
   // --- 2. ĐỒNG BỘ URL VÀO FILTER ---
   useEffect(() => {
       const newCategory = slug || '';
-      
-      // Khi URL đổi, reset lại toàn bộ
       setStories([]);
       setPage(1);
       setHasMore(true);
-
+      
       const newFilterState = {
           category: newCategory,
-          status: slug ? 'all' : 'NEW', // Trang thể loại: All, Trang danh sách: New
+          status: slug ? 'all' : 'NEW', 
           sort: 'default'
       };
 
       setFilter(newFilterState);
-      setTempFilter(newFilterState); // Đồng bộ temp filter theo
+      setTempFilter(newFilterState); 
 
   }, [slug, location.pathname]);
 
   // --- 3. FETCH DATA TỪ API ---
-  // Chỉ chạy lại khi Page, Category hoặc Status thay đổi.
-  // KHÔNG chạy lại khi Sort thay đổi (vì sort là client-side)
   useEffect(() => {
       const fetchData = async () => {
           if (page === 1) setLoading(true);
@@ -94,12 +90,9 @@ const ListPage = () => {
           try {
               let apiUrl = '';
               
-              // Ưu tiên 1: Gọi API Thể Loại
               if (filter.category) {
                   apiUrl = `https://otruyenapi.com/v1/api/the-loai/${filter.category}?page=${page}`;
-              } 
-              // Ưu tiên 2: Gọi API Danh Sách theo Trạng Thái
-              else {
+              } else {
                   const endpointKey = filter.status === 'all' ? 'NEW' : filter.status;
                   const endpoint = API_ENDPOINTS[endpointKey] || 'truyen-moi';
                   apiUrl = `https://otruyenapi.com/v1/api/danh-sach/${endpoint}?page=${page}`;
@@ -135,24 +128,20 @@ const ListPage = () => {
           }
       };
 
-      // Debounce call
       const timer = setTimeout(() => { fetchData(); }, 100);
       return () => clearTimeout(timer);
 
-  }, [page, filter.category, filter.status]); // <--- Quan trọng: Không có filter.sort ở đây
+  }, [page, filter.category, filter.status]); 
 
   // --- 4. LOGIC LỌC & SẮP XẾP (CLIENT SIDE) ---
-  // Logic này sẽ chạy mỗi khi stories thay đổi HOẶC filter.sort thay đổi
   const displayedStories = useMemo(() => {
       let result = [...stories];
 
-      // A. LỌC TRẠNG THÁI (Chỉ khi đang ở API Thể loại)
       if (filter.category && filter.status !== 'all') {
           const targetStatus = filter.status === 'COMPLETED' ? 'Completed' : 'Ongoing'; 
           result = result.filter(s => s.status.toLowerCase() === targetStatus.toLowerCase());
       }
 
-      // B. SẮP XẾP
       const getChapNum = (item) => {
           const chapStr = item.latest_chapter || (item.chaptersLatest && item.chaptersLatest[0]?.chapter_name) || '';
           const num = parseFloat(chapStr.match(/\d+(\.\d+)?/)?.[0]);
@@ -163,13 +152,13 @@ const ListPage = () => {
           case 'name_az':
               result.sort((a, b) => a.name.localeCompare(b.name));
               break;
-          case 'chapter_desc': // Nhiều chương nhất
+          case 'chapter_desc': 
               result.sort((a, b) => getChapNum(b) - getChapNum(a));
               break;
-          case 'chapter_asc': // Ít chương nhất
+          case 'chapter_asc': 
               result.sort((a, b) => getChapNum(a) - getChapNum(b));
               break;
-          case 'new_update': // Mới cập nhật
+          case 'new_update': 
           case 'default': 
           default:
               result.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -179,49 +168,35 @@ const ListPage = () => {
       return result;
   }, [stories, filter.sort, filter.status, filter.category]);
 
-
   // --- HANDLERS ---
   const handleLoadMore = () => setPage(prev => prev + 1);
   const handleTempFilterChange = (key, value) => setTempFilter(prev => ({ ...prev, [key]: value }));
 
-  // [FIX QUAN TRỌNG]: Hàm Áp Dụng Bộ Lọc
   const handleApplyFilter = () => {
-      // Kiểm tra xem có cần gọi lại API không (Chỉ khi Category hoặc Status thay đổi)
       const isFetchRequired = tempFilter.category !== filter.category || tempFilter.status !== filter.status;
-
       if (isFetchRequired) {
-          // Nếu cần gọi API -> Xóa list cũ, Reset page
           setStories([]);
           setPage(1);
-
-          // Nếu đổi thể loại -> Navigate (sẽ trigger useEffect reset ở trên)
           if (tempFilter.category !== filter.category) {
               if (tempFilter.category) navigate(`/the-loai/${tempFilter.category}`);
               else navigate('/danh-sach');
           }
       } 
-      
-      // Cập nhật Filter chính thức (Trigger useMemo sắp xếp lại)
       setFilter(tempFilter);
       setShowFilter(false);
   };
 
-  // Nút Đặt Lại: Chỉ reset Status và Sort, giữ Category hiện tại
   const handleResetFilter = () => {
       const defaultState = {
           category: filter.category, 
-          status: slug ? 'all' : 'NEW', // Nếu đang ở thể loại thì all, nếu không thì NEW
+          status: slug ? 'all' : 'NEW', 
           sort: 'default'
       };
-      
       setTempFilter(defaultState);
-      
-      // Nếu Status thay đổi -> Cần fetch lại
       if (filter.status !== defaultState.status) {
           setStories([]);
           setPage(1);
       }
-      
       setFilter(defaultState);
   };
 
@@ -258,7 +233,8 @@ const ListPage = () => {
                         <span className="text-primary">#</span> {pageTitle}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        Đang hiển thị {displayedStories.length} truyện
+                         {/* Hiển thị số lượng thực tế đang render */}
+                         {loading ? 'Đang cập nhật...' : `Đang hiển thị ${displayedStories.length} truyện`}
                     </p>
                 </div>
 
@@ -276,7 +252,6 @@ const ListPage = () => {
         {showFilter && (
             <div className="mb-8 bg-[#151525] p-6 rounded-2xl border border-white/5 shadow-xl animate-fade-in-down">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    
                     {/* 1. Trạng Thái */}
                     <div>
                         <h4 className="text-white font-bold text-sm uppercase mb-3 border-l-2 border-primary pl-2">Trạng Thái</h4>
@@ -284,28 +259,23 @@ const ListPage = () => {
                             {filter.category && (
                                 <button onClick={() => handleTempFilterChange('status', 'all')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'all' ? 'bg-primary text-white border-primary' : 'bg-[#1a1a2e] border-white/10'}`}>Tất Cả</button>
                             )}
-                            
-                            {/* Chỉ hiện nút Truyện Mới / Sắp ra mắt khi KHÔNG lọc theo thể loại (vì API thể loại không hỗ trợ) */}
                             {!filter.category && (
                                 <button onClick={() => handleTempFilterChange('status', 'NEW')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'NEW' ? 'bg-primary text-white border-primary' : 'bg-[#1a1a2e] border-white/10'}`}>Truyện Mới</button>
                             )}
-                            
                             <button onClick={() => handleTempFilterChange('status', 'ONGOING')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'ONGOING' ? 'bg-green-600 text-white border-green-600' : 'bg-[#1a1a2e] border-white/10'}`}>Đang Tiến Hành</button>
                             <button onClick={() => handleTempFilterChange('status', 'COMPLETED')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'COMPLETED' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[#1a1a2e] border-white/10'}`}>Hoàn Thành</button>
-                            
                             {!filter.category && (
                                 <button onClick={() => handleTempFilterChange('status', 'UPCOMING')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'UPCOMING' ? 'bg-purple-500 text-white border-purple-500' : 'bg-[#1a1a2e] border-white/10'}`}>Sắp Ra Mắt</button>
                             )}
                         </div>
                     </div>
-
                     {/* 2. Sắp Xếp */}
                     <div>
                         <h4 className="text-white font-bold text-sm uppercase mb-3 border-l-2 border-green-500 pl-2">Sắp Xếp</h4>
                         <div className="flex flex-wrap gap-2">
                             {[
                                 { id: 'default', label: 'Mặc Định' },
-                                { id: 'new_update', label: 'Mới Cập Nhật' }, // Thêm option này cho rõ
+                                { id: 'new_update', label: 'Mới Cập Nhật' },
                                 { id: 'chapter_desc', label: 'Nhiều Chương' },
                                 { id: 'chapter_asc', label: 'Ít Chương' },
                                 { id: 'name_az', label: 'Tên A-Z' },
@@ -314,82 +284,74 @@ const ListPage = () => {
                             ))}
                         </div>
                     </div>
-
                     {/* 3. Thể Loại */}
                     <div>
                         <h4 className="text-white font-bold text-sm uppercase mb-3 border-l-2 border-purple-500 pl-2">Chuyển Thể Loại</h4>
-                        <select 
-                            onChange={(e) => handleTempFilterChange('category', e.target.value)} 
-                            value={tempFilter.category} 
-                            className="w-full bg-[#1a1a2e] border border-white/10 text-gray-300 text-sm rounded-lg p-2.5 focus:outline-none focus:border-primary cursor-pointer"
-                        >
+                        <select onChange={(e) => handleTempFilterChange('category', e.target.value)} value={tempFilter.category} className="w-full bg-[#1a1a2e] border border-white/10 text-gray-300 text-sm rounded-lg p-2.5 focus:outline-none focus:border-primary cursor-pointer">
                             <option value="">-- Tất cả thể loại --</option>
-                            {fullCategories.map(cat => (
-                                <option key={cat._id} value={cat.slug}>{cat.name}</option>
-                            ))}
+                            {fullCategories.map(cat => (<option key={cat._id} value={cat.slug}>{cat.name}</option>))}
                         </select>
                     </div>
                 </div>
-
-                {/* ACTIONS */}
                 <div className="flex justify-end gap-3 border-t border-white/5 pt-4">
-                    <button 
-                        onClick={handleResetFilter}
-                        className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#252538] hover:bg-red-500/20 hover:text-red-500 text-gray-400 text-sm font-bold transition-colors"
-                    >
-                        <RiDeleteBinLine /> Đặt Lại
-                    </button>
-                    <button 
-                        onClick={handleApplyFilter}
-                        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-bold shadow-lg shadow-green-900/30 transition-all"
-                    >
-                        <RiCheckLine /> Áp Dụng
-                    </button>
+                    <button onClick={handleResetFilter} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#252538] hover:bg-red-500/20 hover:text-red-500 text-gray-400 text-sm font-bold transition-colors"><RiDeleteBinLine /> Đặt Lại</button>
+                    <button onClick={handleApplyFilter} className="flex items-center gap-2 px-6 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-bold shadow-lg shadow-green-900/30 transition-all"><RiCheckLine /> Áp Dụng</button>
                 </div>
             </div>
         )}
 
-        {/* LOADING */}
-        {loading && (
-            <div className="py-40 flex flex-col items-center justify-center gap-4">
-                <div className="w-12 h-12 border-4 border-white/10 border-t-primary rounded-full animate-spin"></div>
-                <p className="text-gray-500 text-sm animate-pulse">Đang tải dữ liệu...</p>
+        {/* --- HIỂN THỊ SKELETON KHI LOADING --- */}
+        {loading ? (
+            // Grid Skeleton (18 items)
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 animate-fade-in-up">
+                {[...Array(18)].map((_, index) => (
+                    <SkeletonCard key={index} />
+                ))}
             </div>
-        )}
-
-        {/* CONTENT */}
-        {!loading && displayedStories.length > 0 ? (
+        ) : (
+            // --- HIỂN THỊ NỘI DUNG ---
             <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 animate-fade-in-up">
-                    {displayedStories.map((truyen) => (
-                        <Link key={truyen._id} to={`/truyen-tranh/${truyen.slug}`} className="flex flex-col gap-2 group cursor-pointer">
-                            <div className="w-full aspect-[2/3] bg-[#1f1f3a] rounded-lg overflow-hidden relative border border-white/5 group-hover:border-green-500/50 transition-all shadow-sm">
-                                <img 
-                                    src={`${domainAnh}/uploads/comics/${truyen.thumb_url}`}
-                                    alt={truyen.name}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    loading="lazy"
-                                />
-                                <div className="absolute top-1.5 right-1.5 flex flex-row items-center gap-1">
-                                    <span className="bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-                                        <RiTimeLine size={8} className="text-primary"/> {timeAgo(truyen.updatedAt)}
-                                    </span>
-                                    <span className="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-                                        <RiBookOpenLine size={8} /> {formatChapter(truyen)}
-                                    </span>
+                {displayedStories.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 animate-fade-in-up">
+                        {displayedStories.map((truyen) => (
+                            <Link key={truyen._id} to={`/truyen-tranh/${truyen.slug}`} className="flex flex-col gap-2 group cursor-pointer">
+                                <div className="w-full aspect-[2/3] bg-[#1f1f3a] rounded-lg overflow-hidden relative border border-white/5 group-hover:border-green-500/50 transition-all shadow-sm">
+                                    <img 
+                                        src={`${domainAnh}/uploads/comics/${truyen.thumb_url}`}
+                                        alt={truyen.name}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        loading="lazy"
+                                    />
+                                    <div className="absolute top-1.5 right-1.5 flex flex-row items-center gap-1">
+                                        <span className="bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                                            <RiTimeLine size={8} className="text-primary"/> {timeAgo(truyen.updatedAt)}
+                                        </span>
+                                        <span className="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                                            <RiBookOpenLine size={8} /> {formatChapter(truyen)}
+                                        </span>
+                                    </div>
+                                    <div className={`absolute bottom-0 left-0 right-0 text-[9px] text-center font-bold text-white py-0.5 ${truyen.status === 'ongoing' ? 'bg-green-600/80' : 'bg-blue-600/80'}`}>
+                                        {truyen.status === 'ongoing' ? 'ĐANG TIẾN HÀNH' : 'HOÀN THÀNH'}
+                                    </div>
                                 </div>
-                                <div className={`absolute bottom-0 left-0 right-0 text-[9px] text-center font-bold text-white py-0.5 ${truyen.status === 'ongoing' ? 'bg-green-600/80' : 'bg-blue-600/80'}`}>
-                                    {truyen.status === 'ongoing' ? 'ĐANG TIẾN HÀNH' : 'HOÀN THÀNH'}
-                                </div>
-                            </div>
-                            <h4 className="text-gray-200 text-xs md:text-sm font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors min-h-[2.5em]">
-                                {truyen.name}
-                            </h4>
-                        </Link>
-                    ))}
-                </div>
+                                <h4 className="text-gray-200 text-xs md:text-sm font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors min-h-[2.5em]">
+                                    {truyen.name}
+                                </h4>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    // Empty State
+                    <div className="py-20 text-center text-gray-500 bg-[#151525] rounded-xl border border-white/5 border-dashed">
+                        <RiErrorWarningLine className="text-5xl mx-auto mb-4 opacity-50" />
+                        <p>Không tìm thấy truyện nào phù hợp.</p>
+                        <button onClick={handleResetFilter} className="mt-4 text-primary hover:underline text-sm font-bold">
+                            Xóa bộ lọc (Giữ thể loại hiện tại)
+                        </button>
+                    </div>
+                )}
 
-                {hasMore && (
+                {hasMore && !loading && displayedStories.length > 0 && (
                     <div className="mt-12 text-center">
                         <button 
                             onClick={handleLoadMore} 
@@ -402,18 +364,7 @@ const ListPage = () => {
                     </div>
                 )}
             </>
-        ) : (
-            !loading && (
-                <div className="py-20 text-center text-gray-500 bg-[#151525] rounded-xl border border-white/5 border-dashed">
-                    <RiErrorWarningLine className="text-5xl mx-auto mb-4 opacity-50" />
-                    <p>Không tìm thấy truyện nào phù hợp.</p>
-                    <button onClick={handleResetFilter} className="mt-4 text-primary hover:underline text-sm font-bold">
-                        Xóa bộ lọc (Giữ thể loại hiện tại)
-                    </button>
-                </div>
-            )
         )}
-
       </main>
       <Footer />
     </div>
