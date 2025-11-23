@@ -144,7 +144,7 @@ const ListPage = () => {
       }
   };
 
-  // --- CLIENT SIDE SORTING (Vì API không hỗ trợ sort params) ---
+  // --- CLIENT SIDE SORTING ---
   // Chỉ sắp xếp trên những truyện ĐÃ TẢI VỀ (Hạn chế nhưng tốt hơn không có)
   const displayedStories = useMemo(() => {
       let result = [...stories];

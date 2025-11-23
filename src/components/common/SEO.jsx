@@ -5,8 +5,8 @@ const SEO = ({ title, description, image, url }) => {
     // Cấu hình mặc định (khi không truyền props)
     const defaultTitle = "TruyenVietHay - Đọc Truyện Tranh Online Hay Nhất";
     const defaultDesc = "Web đọc truyện tranh online cập nhật liên tục, giao diện mượt mà, không quảng cáo.";
-    const defaultImage = "/logo.png"; // Hoặc link ảnh banner mặc định của web
-    const siteUrl = window.location.origin; // Tự động lấy domain hiện tại (VD: truyenviethay.com)
+    const defaultImage = "/logo.png";
+    const siteUrl = window.location.origin; // Lấy URL gốc của trang web
 
     const metaTitle = title ? `${title} | TruyenVietHay` : defaultTitle;
     const metaDesc = description || defaultDesc;

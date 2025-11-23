@@ -7,7 +7,8 @@ import Footer from '../components/layouts/Footer';
 import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection'; 
 import Toast from '../components/common/Toast';
-import SEO from '../components/common/SEO'; // <--- IMPORT SEO
+import SEO from '../components/common/SEO';
+import useReadingProgress from '../hooks/useReadingProgress'; // Import hook scroll position
 import {
     RiArrowLeftSLine, RiArrowRightSLine, RiListCheck,
     RiErrorWarningLine, RiHome4Line, RiHeart3Line, RiHeart3Fill,
@@ -76,6 +77,9 @@ const ChapterPage = () => {
     const [prevChapter, setPrevChapter] = useState(null);
     const [nextChapter, setNextChapter] = useState(null);
 
+    // Kích hoạt Hook lưu vị trí đọc
+    useReadingProgress(slug, chapterName);
+
     // Hàm hiển thị Toast
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -103,9 +107,7 @@ const ChapterPage = () => {
 
                 if (currentIndex === -1) throw new Error("Không tìm thấy chương.");
 
-                // Logic Next/Prev (Vì list giảm dần)
-                // Next (Chương mới hơn): index - 1
-                // Prev (Chương cũ hơn): index + 1
+                // Logic Next/Prev
                 const nextIndex = currentIndex - 1;
                 const prevIndex = currentIndex + 1;
 
@@ -127,7 +129,7 @@ const ChapterPage = () => {
                 setImages(fullImages);
                 setLoading(false);
 
-                // 4. Tự động lưu lịch sử & Check follow (nếu đã login)
+                // 4. Tự động lưu lịch sử & Check follow
                 const token = localStorage.getItem('user_token');
                 if (token) {
                     axios.post('/api/user/history', {
@@ -150,7 +152,8 @@ const ChapterPage = () => {
         };
 
         fetchData();
-        window.scrollTo(0, 0);
+        // Hook useReadingProgress sẽ tự lo việc scroll, nên bỏ window.scrollTo(0,0) ở đây
+        // hoặc chỉ gọi nếu không có savedPosition (nhưng để hook lo là tốt nhất)
     }, [slug, chapterName]);
 
     const handleSelectChapter = (e) => {
@@ -189,7 +192,7 @@ const ChapterPage = () => {
         }
     };
 
-    // --- HÀM GỬI BÁO CÁO THẬT ---
+    // --- HÀM GỬI BÁO CÁO THẬT (ĐÃ TÍCH HỢP API) ---
     const handleSubmitReport = async () => {
         if (!reportReason) return;
 
@@ -204,7 +207,7 @@ const ChapterPage = () => {
             // Gọi API Backend thật
             await axios.post('/api/reports', {
                 comic_slug: slug,
-                chapter_name: `Chương ${chapterName}`, // Ghi rõ chương bị lỗi
+                chapter_name: `Chương ${chapterName}`, // Ghi rõ chương lỗi
                 reason: reportReason
             }, { 
                 headers: { Authorization: `Bearer ${token}` } 
@@ -230,7 +233,6 @@ const ChapterPage = () => {
     const scrollToComments = () => commentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
 
     // --- CHUẨN BỊ DỮ LIỆU SEO ---
-    // Title: Chương 100 - One Piece | TruyenVietHay
     const seoData = comicName ? {
         title: `Chương ${chapterName} - ${comicName}`,
         description: `Đọc truyện ${comicName} Chương ${chapterName} Tiếng Việt nhanh nhất, chất lượng cao tại TruyenVietHay.`,
@@ -374,7 +376,7 @@ const ChapterPage = () => {
                             className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors"
                             title="Báo lỗi"
                         >
-                            <RiFlag2Line size={18} />
+                            <RiFlag2Line size={20} />
                         </button>
                     </div>
                 </div>
@@ -404,7 +406,7 @@ const ChapterPage = () => {
                                 <div className="py-8 flex flex-col items-center text-center">
                                     <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4 text-green-500"><RiCheckLine size={32} /></div>
                                     <h3 className="text-white font-bold text-lg">Đã Gửi Thành Công!</h3>
-                                    <p className="text-gray-400 text-sm mt-2">Cảm ơn đóng góp của bạn.</p>
+                                    <p className="text-gray-400 text-sm mt-2">Cảm ơn bạn đã giúp chúng tôi cải thiện chất lượng.</p>
                                 </div>
                             )}
                         </div>

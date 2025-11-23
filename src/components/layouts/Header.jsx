@@ -11,7 +11,7 @@ import {
   RiNotification3Line, RiLayoutGridFill, RiTrophyFill
 } from 'react-icons/ri';
 
-// --- CẤU HÌNH URL CHO MÔI TRƯỜNG DEPLOY ---
+// URL Backend (dùng để hiển thị avatar người dùng)
 const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
 
 const Header = () => {
@@ -221,7 +221,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* --- MOBILE MENU (Cấu trúc Cũ - Danh sách đơn giản) --- */}
+      {/* --- MOBILE MENU --- */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#1a1a2e] border-t border-white/10 absolute w-full shadow-2xl z-40 h-[calc(100vh-64px)] overflow-y-auto pb-20 animate-fade-in-left">
            <div className="p-4 flex flex-col gap-3">

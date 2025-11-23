@@ -8,7 +8,7 @@ import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection';
 import StarRating from '../components/common/StarRating';
 import Toast from '../components/common/Toast';
-import SEO from '../components/common/SEO'; // Import SEO
+import SEO from '../components/common/SEO';
 import { 
   RiBookOpenLine, RiBookmarkLine, RiUser3Line, RiTimeLine, 
   RiFileList2Line, RiListCheck, RiSortDesc, RiSortAsc, 
