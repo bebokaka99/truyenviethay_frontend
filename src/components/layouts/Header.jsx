@@ -8,14 +8,14 @@ import {
   RiHistoryLine, RiHeart3Line,
   RiLogoutBoxRLine, RiArrowDownSLine, 
   RiUserSettingsLine, RiAdminLine,
-  RiNotification3Line, RiLayoutGridFill, RiTrophyFill,
-  RiArrowRightSLine
+  RiNotification3Line, RiLayoutGridFill, RiTrophyFill // Thêm icon
 } from 'react-icons/ri';
 
-// --- CẤU HÌNH URL CHO MOI TRUONG DEPLOY ---
 const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
 
 const Header = () => {
+  // ... (Giữ nguyên logic state, api call, fetchNotifications...) ...
+  // (Code giống hệt phiên bản trước, chỉ thay đổi phần JSX render Mobile Menu ở cuối)
   const [categories, setCategories] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -31,17 +31,13 @@ const Header = () => {
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     if (avatarPath.startsWith('http')) return avatarPath;
-    // Xử lý nối chuỗi an toàn
-    return `${BACKEND_URL}/${avatarPath.replace(/^\//, '')}`; 
+    return `${BACKEND_URL}/${avatarPath}`; 
   };
 
   const fetchNotifications = async () => {
     if (!user) return;
     try {
       const token = localStorage.getItem('user_token');
-      // Gọi API qua axios (đã config baseURL hoặc gọi thẳng)
-      // Ở đây dùng relative path vì axios ở main.jsx đã có thể config, 
-      // nhưng để chắc chắn với code cũ của bạn, ta cứ gọi relative
       const res = await axios.get('/api/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -70,15 +66,7 @@ const Header = () => {
       } catch (error) { console.error(error); }
     };
     fetchCategories();
-    
     if (user) fetchNotifications();
-    
-    // Polling: Tự động check thông báo mỗi 30s
-    const interval = setInterval(() => {
-        if (user) fetchNotifications();
-    }, 30000);
-
-    return () => clearInterval(interval);
   }, [user]);
 
   const handleSearch = (e) => {
@@ -92,11 +80,11 @@ const Header = () => {
   const handleLogout = () => {
       logout();
       setShowUserMenu(false);
-      setMobileMenuOpen(false);
   };
 
   return (
     <header className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md border-b border-white/5 font-display">
+      {/* ... (Phần Desktop Navbar giữ nguyên) ... */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -104,11 +92,10 @@ const Header = () => {
              <img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain" />
           </Link>
 
-          {/* --- DESKTOP NAVIGATION --- */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
-            <Link to="/" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider transition-colors">Trang Chủ</Link>
+            <Link to="/" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider">Trang Chủ</Link>
             <div className="group relative py-4">
-              <button className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors">
+              <button className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1">
                  Thể Loại
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 w-[600px] bg-[#1a1a2e] border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-6 grid grid-cols-4 gap-3 z-50">
@@ -120,7 +107,7 @@ const Header = () => {
                  <Link to="/danh-sach" className="col-span-4 text-center text-primary text-xs font-bold pt-2 hover:underline">Xem tất cả</Link>
               </div>
             </div>
-            <Link to="/xep-hang" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors">Xếp Hạng</Link>
+            <Link to="/xep-hang" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1">Xếp Hạng</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -138,29 +125,26 @@ const Header = () => {
             
             {user ? (
                 <div className="flex items-center gap-4">
-                    {/* Notification Desktop (Dropdown) */}
-                    <div className="relative group hidden lg:block" onMouseEnter={handleReadNotify}>
+                    <div className="relative group" onMouseEnter={handleReadNotify}>
                         <button className="w-9 h-9 rounded-full bg-[#252538] hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/5 relative">
                             <RiNotification3Line size={18} />
-                            {unreadCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
+                            {unreadCount > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
                         </button>
                         <div className="absolute right-0 mt-2 w-80 bg-[#1a1a2e] border border-white/10 rounded-xl shadow-2xl p-0 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                             <div className="p-3 border-b border-white/5 flex justify-between items-center bg-white/5"><h4 className="text-white font-bold text-sm">Thông Báo</h4></div>
                             <div className="max-h-60 overflow-y-auto custom-scrollbar">
                                 {notifications.length > 0 ? notifications.map(notif => (
-                                    <Link to={notif.link || '#'} key={notif.id} className={`block p-3 border-b border-white/5 transition-colors ${notif.is_read ? 'opacity-50 hover:bg-white/5' : 'bg-white/5 hover:bg-white/10'}`}>
+                                    <div key={notif.id} className={`p-3 border-b border-white/5 transition-colors ${notif.is_read ? 'opacity-50' : 'bg-white/5'}`}>
                                         <p className="text-xs text-gray-200 font-bold mb-1">{notif.title}</p>
                                         <p className="text-xs text-gray-400 line-clamp-2">{notif.message}</p>
                                         <span className="text-[9px] text-gray-600 mt-1 block">{new Date(notif.created_at).toLocaleString('vi-VN')}</span>
-                                    </Link>
+                                    </div>
                                 )) : <p className="text-center text-gray-500 text-xs p-4">Chưa có thông báo nào.</p>}
                             </div>
                             <Link to="/thong-bao" className="block text-center text-xs text-gray-400 hover:text-white py-2 bg-white/5 hover:bg-white/10 transition-colors">Xem tất cả</Link>
                         </div>
                     </div>
-
-                    {/* User Menu Desktop */}
-                    <div className="relative hidden lg:block">
+                    <div className="relative">
                         <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 bg-[#252538] hover:bg-white/10 border border-white/5 rounded-full py-1 pr-3 pl-1 transition-all">
                             <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-700 border border-white/10">
                                 {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt="Avt" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-bold text-white bg-gradient-to-tr from-primary to-purple-600">{user.full_name?.charAt(0).toUpperCase()}</div>}
@@ -190,111 +174,49 @@ const Header = () => {
                     <Link to="/register" className="bg-primary hover:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors shadow-lg shadow-primary/20">Đăng ký</Link>
                 </div>
             )}
-            
-            {/* Mobile Menu Button */}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden text-white text-2xl p-1 relative">
-                {mobileMenuOpen ? <RiCloseLine /> : <RiMenu3Line />}
-                {/* Chấm đỏ nhỏ nếu có notif khi menu đóng */}
-                {!mobileMenuOpen && unreadCount > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1a1a2e]"></span>}
-            </button>
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden text-white text-2xl p-1">{mobileMenuOpen ? <RiCloseLine /> : <RiMenu3Line />}</button>
           </div>
         </div>
       </div>
 
-      {/* --- MOBILE MENU (Được thiết kế lại hoàn toàn) --- */}
+      {/* --- MOBILE MENU --- */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#1a1a2e] border-t border-white/10 absolute w-full shadow-2xl z-50 h-[calc(100vh-64px)] overflow-y-auto pb-20 animate-fade-in-left">
-           <div className="p-4 flex flex-col gap-3">
-              
-              {/* User Info Mobile */}
-              {user && (
-                  <div className="flex items-center gap-3 bg-[#252538] p-3 rounded-xl border border-white/5 mb-2">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10">
-                          {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt="Avt" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-bold text-white bg-gradient-to-tr from-primary to-purple-600">{user.full_name?.charAt(0).toUpperCase()}</div>}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                          <p className="text-white font-bold text-sm truncate">{user.full_name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                              <LevelBadge exp={user.exp} rankStyle={user.rank_style} role={user.role} />
-                          </div>
-                      </div>
-                  </div>
-              )}
-
+        <div className="lg:hidden bg-[#1a1a2e] border-t border-white/10 p-4 absolute w-full shadow-2xl z-50 h-screen overflow-y-auto pb-20">
+           <div className="flex flex-col gap-2">
               {/* Search */}
-              <div className="flex items-center bg-[#252538] rounded-xl px-4 py-3 mb-2 border border-white/5 focus-within:border-primary/50 transition-colors">
-                 <RiSearchLine className="text-gray-400 text-lg" />
-                 <input type="text" placeholder="Tìm kiếm truyện..." className="bg-transparent border-none focus:outline-none text-sm text-white px-3 w-full" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleSearch} />
+              <div className="flex items-center bg-[#252538] rounded-lg px-3 py-2.5 mb-4 border border-white/5">
+                 <RiSearchLine className="text-gray-400" />
+                 <input type="text" placeholder="Tìm kiếm truyện..." className="bg-transparent border-none focus:outline-none text-sm text-white px-2 w-full" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleSearch} />
               </div>
 
-              <Link to="/" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                  <span>Trang Chủ</span>
-                  <RiArrowRightSLine className="text-gray-600" />
-              </Link>
+              <Link to="/" className="text-gray-300 font-bold p-3 rounded hover:bg-white/5" onClick={() => setMobileMenuOpen(false)}>Trang Chủ</Link>
               
-              <Link to="/danh-sach" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                 <div className="flex items-center gap-3"><RiLayoutGridFill className="text-primary text-lg"/> Thể Loại</div>
-                 <RiArrowRightSLine className="text-gray-600" />
+              {/* --- MỚI: THỂ LOẠI & XẾP HẠNG (MOBILE) --- */}
+              <Link to="/danh-sach" className="text-gray-300 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                 <RiLayoutGridFill className="text-primary"/> Thể Loại
               </Link>
-              
-              <Link to="/xep-hang" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                 <div className="flex items-center gap-3"><RiTrophyFill className="text-primary text-lg"/> Xếp Hạng</div>
-                 <RiArrowRightSLine className="text-gray-600" />
+              <Link to="/xep-hang" className="text-gray-300 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                 <RiTrophyFill className="text-primary"/> Xếp Hạng
               </Link>
 
-              <div className="border-t border-white/5 my-1"></div>
+              <div className="border-t border-white/5 my-2"></div>
 
               {user ? (
                   <>
-                    {/* --- MỤC THÔNG BÁO RIÊNG BIỆT (MOBILE) --- */}
-                    {/* Thay vì mở dropdown, ta chuyển hướng sang trang /thong-bao */}
-                    <Link to="/thong-bao" className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors" onClick={() => { setMobileMenuOpen(false); handleReadNotify(); }}>
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <RiNotification3Line className="text-primary text-lg" />
-                                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
-                            </div>
-                            <span className="text-white font-bold">Thông Báo</span>
-                        </div>
-                        {unreadCount > 0 ? (
-                            <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-sm shadow-red-500/50">
-                                {unreadCount > 99 ? '99+' : unreadCount}
-                            </span>
-                        ) : (
-                            <span className="text-xs text-gray-500">Không có mới</span>
-                        )}
-                    </Link>
-
-                    <Link to="/profile" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="flex items-center gap-3"><RiUserSettingsLine className="text-primary text-lg"/> Hồ Sơ Cá Nhân</div>
-                        <RiArrowRightSLine className="text-gray-600" />
-                    </Link>
-
-                    <Link to="/lich-su" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="flex items-center gap-3"><RiHistoryLine className="text-primary text-lg"/> Lịch Sử Đọc</div>
-                        <RiArrowRightSLine className="text-gray-600" />
-                    </Link>
-
-                    <Link to="/theo-doi" className="flex items-center justify-between text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="flex items-center gap-3"><RiHeart3Line className="text-primary text-lg"/> Tủ Truyện</div>
-                        <RiArrowRightSLine className="text-gray-600" />
-                    </Link>
-
-                    {user.role === 'admin' && (
-                        <Link to="/admin" className="flex items-center justify-between text-red-500 font-bold p-3 rounded-xl hover:bg-red-500/10 transition-colors mt-2 border border-red-500/20" onClick={() => setMobileMenuOpen(false)}>
-                            <div className="flex items-center gap-3"><RiAdminLine className="text-lg"/> Quản Trị Viên</div>
-                            <RiArrowRightSLine className="text-red-500" />
-                        </Link>
-                    )}
-
-                    <button onClick={handleLogout} className="w-full mt-4 flex items-center justify-center gap-2 text-red-400 font-bold p-3 rounded-xl bg-[#252538] hover:bg-red-500/10 transition-colors">
-                        <RiLogoutBoxRLine /> Đăng Xuất
-                    </button>
+                    {user.role === 'admin' && <Link to="/admin" className="text-red-500 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2"><RiAdminLine /> Quản Trị Viên</Link>}
+                    <div className="text-gray-300 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2 justify-between">
+                        <span className="flex items-center gap-2"><RiNotification3Line className="text-primary"/> Thông Báo</span>
+                        {unreadCount > 0 && (<span className="bg-red-500 text-white text-[10px] px-1.5 rounded-full">{unreadCount}</span>)}
+                    </div>
+                    <Link to="/profile" className="text-gray-300 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2"><RiUserSettingsLine className="text-primary"/> Thông Tin Cá Nhân</Link>
+                    <Link to="/lich-su" className="text-gray-300 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2"><RiHistoryLine className="text-primary"/> Lịch Sử Đọc</Link>
+                    <Link to="/theo-doi" className="text-gray-300 font-bold p-3 rounded hover:bg-white/5 flex items-center gap-2"><RiHeart3Line className="text-primary"/> Tủ Truyện</Link>
+                    <button onClick={handleLogout} className="text-red-400 font-bold p-3 rounded hover:bg-white/5 text-left flex items-center gap-2"><RiLogoutBoxRLine /> Đăng Xuất</button>
                   </>
               ) : (
-                  <div className="flex flex-col gap-3 mt-2">
-                      <Link to="/login" className="text-center text-gray-300 font-bold py-3 rounded-xl border border-white/10 hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>Đăng nhập</Link>
-                      <Link to="/register" className="text-center bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/20 transition-colors" onClick={() => setMobileMenuOpen(false)}>Đăng ký ngay</Link>
+                  <div className="border-t border-white/10 pt-4 flex flex-col gap-3 mt-2">
+                     <Link to="/login" className="text-center text-gray-300 font-bold py-2 rounded border border-white/10">Đăng nhập</Link>
+                     <Link to="/register" className="text-center bg-primary text-white font-bold py-2 rounded shadow-lg shadow-primary/20">Đăng ký ngay</Link>
                   </div>
               )}
            </div>
