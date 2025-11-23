@@ -19,7 +19,7 @@ import RankingPage from './pages/RankingPage';
 import ListPage from './pages/ListPage';
 import NotFoundPage from './pages/NotFoundPage'; 
 import AboutPage from './pages/AboutPage'; 
-import SearchPage from './pages/SearchPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 // --- ADMIN PAGES ---
 import DashboardPage from './pages/admin/DashboardPage';
@@ -48,6 +48,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/about" element={<AboutPage />} /> 
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         <Route path="/truyen-tranh/:slug" element={<ComicDetailPage />} />
         <Route path="/doc-truyen/:slug/:chapterName" element={<ChapterPage />} />
@@ -55,7 +56,6 @@ function App() {
         <Route path="/the-loai/:slug" element={<ListPage />} />
         <Route path="/danh-sach" element={<ListPage />} />
         <Route path="/xep-hang" element={<RankingPage />} />
-        <Route path="/tim-kiem" element={<SearchPage />} />
         
         {/* --- AUTHENTICATED ROUTES (Không cần ProtectedRoute vì logic đã được handle bên trong từng Page) --- */}
         <Route path="/profile" element={<ProfilePage />} />

@@ -96,7 +96,7 @@ const LoginPage = () => {
           </div>
 
           <div className="flex justify-end">
-            <a href="#" className="text-xs text-primary hover:text-blue-400 font-bold">Quên mật khẩu?</a>
+            <a href="/forgot-password" className="text-xs text-primary hover:text-blue-400 font-bold">Quên mật khẩu?</a>
           </div>
 
           <button
