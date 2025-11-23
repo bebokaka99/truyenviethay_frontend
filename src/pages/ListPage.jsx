@@ -10,13 +10,13 @@ import {
 } from 'react-icons/ri';
 
 const ListPage = () => {
-  const { slug } = useParams(); // Slug thể loại
+  const { slug } = useParams(); // Lấy slug nếu đang ở route /the-loai/:slug
   const navigate = useNavigate();
   const location = useLocation();
 
   // --- CẤU HÌNH API ---
   const API_ENDPOINTS = {
-      NEW: 'truyen-moi',         // Mặc định (Chương mới cập nhật)
+      NEW: 'truyen-moi',
       ONGOING: 'dang-phat-hanh',
       COMPLETED: 'hoan-thanh',
       UPCOMING: 'sap-ra-mat'
@@ -38,15 +38,14 @@ const ListPage = () => {
   // Toggle Filter Panel
   const [showFilter, setShowFilter] = useState(false);
   
-  // --- FILTER STATE ---
-  // 1. Bộ lọc thực tế đang áp dụng
+  // 1. Bộ lọc thực tế (Đang áp dụng)
   const [filter, setFilter] = useState({
-      status: 'all',       // 'all' | 'ONGOING' | 'COMPLETED' | 'UPCOMING'
+      status: 'all', 
       category: slug || '', 
-      sort: 'default'      // 'default' (Update mới nhất) | 'name_az' | 'chapter_desc' | 'chapter_asc'
+      sort: 'default' 
   });
 
-  // 2. Bộ lọc tạm thời (trên UI panel)
+  // 2. Bộ lọc tạm thời (Trên UI, chưa áp dụng)
   const [tempFilter, setTempFilter] = useState({
       status: 'all',
       category: slug || '',
@@ -65,29 +64,28 @@ const ListPage = () => {
   }, []);
 
   // --- 2. ĐỒNG BỘ URL VÀO FILTER ---
-  // Khi URL thay đổi (VD: bấm từ menu), cập nhật lại filter
   useEffect(() => {
       const newCategory = slug || '';
       
-      setFilter(prev => ({
-          ...prev,
-          category: newCategory,
-          // Nếu vào trang thể loại cụ thể, reset status về all để hiện nhiều truyện nhất
-          // Nếu vào trang danh sách gốc, giữ nguyên hoặc reset tùy ý
-          status: 'all' 
-      }));
-
-      setTempFilter(prev => ({
-          ...prev,
-          category: newCategory,
-          status: 'all'
-      }));
-
+      // Khi URL đổi, reset lại toàn bộ
       setStories([]);
       setPage(1);
+      setHasMore(true);
+
+      const newFilterState = {
+          category: newCategory,
+          status: slug ? 'all' : 'NEW', // Trang thể loại: All, Trang danh sách: New
+          sort: 'default'
+      };
+
+      setFilter(newFilterState);
+      setTempFilter(newFilterState); // Đồng bộ temp filter theo
+
   }, [slug, location.pathname]);
 
   // --- 3. FETCH DATA TỪ API ---
+  // Chỉ chạy lại khi Page, Category hoặc Status thay đổi.
+  // KHÔNG chạy lại khi Sort thay đổi (vì sort là client-side)
   useEffect(() => {
       const fetchData = async () => {
           if (page === 1) setLoading(true);
@@ -96,15 +94,12 @@ const ListPage = () => {
           try {
               let apiUrl = '';
               
-              // LOGIC QUYẾT ĐỊNH GỌI API NÀO
-              
-              // TH1: Có lọc theo Thể Loại -> Bắt buộc gọi API Thể Loại
+              // Ưu tiên 1: Gọi API Thể Loại
               if (filter.category) {
                   apiUrl = `https://otruyenapi.com/v1/api/the-loai/${filter.category}?page=${page}`;
               } 
-              // TH2: Không có Thể Loại -> Gọi API Danh Sách theo Trạng Thái
+              // Ưu tiên 2: Gọi API Danh Sách theo Trạng Thái
               else {
-                  // Nếu status là 'all', mặc định gọi 'truyen-moi'
                   const endpointKey = filter.status === 'all' ? 'NEW' : filter.status;
                   const endpoint = API_ENDPOINTS[endpointKey] || 'truyen-moi';
                   apiUrl = `https://otruyenapi.com/v1/api/danh-sach/${endpoint}?page=${page}`;
@@ -122,7 +117,6 @@ const ListPage = () => {
               if (page === 1) {
                   setStories(newItems);
               } else {
-                  // Load more: Nối thêm và lọc trùng ID
                   setStories(prev => {
                       const existing = new Set(prev.map(s => s._id));
                       return [...prev, ...newItems.filter(s => !existing.has(s._id))];
@@ -145,29 +139,20 @@ const ListPage = () => {
       const timer = setTimeout(() => { fetchData(); }, 100);
       return () => clearTimeout(timer);
 
-  }, [page, filter.category, filter.status]); 
-  // Lưu ý: filter.sort không nằm trong dependency của useEffect fetch
-  // Vì API Otruyen không hỗ trợ sort server-side, ta sort client-side bên dưới
+  }, [page, filter.category, filter.status]); // <--- Quan trọng: Không có filter.sort ở đây
 
   // --- 4. LOGIC LỌC & SẮP XẾP (CLIENT SIDE) ---
+  // Logic này sẽ chạy mỗi khi stories thay đổi HOẶC filter.sort thay đổi
   const displayedStories = useMemo(() => {
       let result = [...stories];
 
       // A. LỌC TRẠNG THÁI (Chỉ khi đang ở API Thể loại)
-      // Vì API Thể loại trả về hỗn hợp, ta cần lọc lại.
-      // API Danh sách (TH2 ở trên) đã trả về đúng status rồi nên không cần lọc lại.
       if (filter.category && filter.status !== 'all') {
           const targetStatus = filter.status === 'COMPLETED' ? 'Completed' : 'Ongoing'; 
-          // 'UPCOMING' thường ít khi có trong list thể loại, chủ yếu là Ongoing/Completed
-          
-          result = result.filter(s => {
-              // So sánh không phân biệt hoa thường
-              return s.status.toLowerCase() === targetStatus.toLowerCase();
-          });
+          result = result.filter(s => s.status.toLowerCase() === targetStatus.toLowerCase());
       }
 
       // B. SẮP XẾP
-      // Hàm lấy số chương từ chuỗi (VD: "Chapter 100" -> 100)
       const getChapNum = (item) => {
           const chapStr = item.latest_chapter || (item.chaptersLatest && item.chaptersLatest[0]?.chapter_name) || '';
           const num = parseFloat(chapStr.match(/\d+(\.\d+)?/)?.[0]);
@@ -184,10 +169,9 @@ const ListPage = () => {
           case 'chapter_asc': // Ít chương nhất
               result.sort((a, b) => getChapNum(a) - getChapNum(b));
               break;
+          case 'new_update': // Mới cập nhật
           case 'default': 
           default:
-              // Mặc định API đã trả về theo Update mới nhất (updatedAt DESC)
-              // Tuy nhiên nếu muốn chắc chắn, ta sort lại
               result.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
               break;
       }
@@ -196,41 +180,49 @@ const ListPage = () => {
   }, [stories, filter.sort, filter.status, filter.category]);
 
 
-  // --- ACTIONS ---
+  // --- HANDLERS ---
   const handleLoadMore = () => setPage(prev => prev + 1);
+  const handleTempFilterChange = (key, value) => setTempFilter(prev => ({ ...prev, [key]: value }));
 
-  // Cập nhật state tạm thời khi chọn trên UI
-  const handleTempFilterChange = (key, value) => {
-      setTempFilter(prev => ({ ...prev, [key]: value }));
-  };
-
-  // Nút Áp Dụng
+  // [FIX QUAN TRỌNG]: Hàm Áp Dụng Bộ Lọc
   const handleApplyFilter = () => {
-      // Nếu đổi thể loại -> Chuyển trang (Logic điều hướng)
-      if (tempFilter.category !== filter.category) {
-           if (tempFilter.category) navigate(`/the-loai/${tempFilter.category}`);
-           else navigate('/danh-sach');
-           // Khi navigate, useEffect số 2 sẽ chạy và reset mọi thứ
-      } else {
-           // Nếu chỉ đổi status/sort -> Cập nhật filter để fetch/sort lại
-           setStories([]);
-           setPage(1);
-           setFilter(tempFilter);
-      }
-      // setShowFilter(false); // Tùy chọn: Có muốn đóng bảng lọc sau khi apply không
+      // Kiểm tra xem có cần gọi lại API không (Chỉ khi Category hoặc Status thay đổi)
+      const isFetchRequired = tempFilter.category !== filter.category || tempFilter.status !== filter.status;
+
+      if (isFetchRequired) {
+          // Nếu cần gọi API -> Xóa list cũ, Reset page
+          setStories([]);
+          setPage(1);
+
+          // Nếu đổi thể loại -> Navigate (sẽ trigger useEffect reset ở trên)
+          if (tempFilter.category !== filter.category) {
+              if (tempFilter.category) navigate(`/the-loai/${tempFilter.category}`);
+              else navigate('/danh-sach');
+          }
+      } 
+      
+      // Cập nhật Filter chính thức (Trigger useMemo sắp xếp lại)
+      setFilter(tempFilter);
+      setShowFilter(false);
   };
 
-  // Nút Đặt Lại (Chỉ reset Status & Sort, giữ nguyên Category hiện tại)
+  // Nút Đặt Lại: Chỉ reset Status và Sort, giữ Category hiện tại
   const handleResetFilter = () => {
       const defaultState = {
-          category: filter.category, // Giữ nguyên thể loại đang xem
-          status: 'all',
+          category: filter.category, 
+          status: slug ? 'all' : 'NEW', // Nếu đang ở thể loại thì all, nếu không thì NEW
           sort: 'default'
       };
+      
       setTempFilter(defaultState);
+      
+      // Nếu Status thay đổi -> Cần fetch lại
+      if (filter.status !== defaultState.status) {
+          setStories([]);
+          setPage(1);
+      }
+      
       setFilter(defaultState);
-      setStories([]);
-      setPage(1);
   };
 
   // Helpers Render
@@ -266,7 +258,6 @@ const ListPage = () => {
                         <span className="text-primary">#</span> {pageTitle}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        {/* Hiển thị số lượng đang hiển thị / Tổng số */}
                         Đang hiển thị {displayedStories.length} truyện
                     </p>
                 </div>
@@ -290,15 +281,16 @@ const ListPage = () => {
                     <div>
                         <h4 className="text-white font-bold text-sm uppercase mb-3 border-l-2 border-primary pl-2">Trạng Thái</h4>
                         <div className="flex flex-wrap gap-2">
-                            {/* Nút "Tất Cả" luôn hiện */}
-                            <button onClick={() => handleTempFilterChange('status', 'all')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'all' ? 'bg-primary text-white border-primary' : 'bg-[#1a1a2e] border-white/10'}`}>Tất Cả</button>
-                            
-                            {/* Nếu không chọn category, cho phép lọc theo list API */}
-                            {!filter.category && (
-                                <button onClick={() => handleTempFilterChange('status', 'NEW')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'NEW' ? 'bg-green-600 text-white border-green-600' : 'bg-[#1a1a2e] border-white/10'}`}>Truyện Mới</button>
+                            {filter.category && (
+                                <button onClick={() => handleTempFilterChange('status', 'all')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'all' ? 'bg-primary text-white border-primary' : 'bg-[#1a1a2e] border-white/10'}`}>Tất Cả</button>
                             )}
                             
-                            <button onClick={() => handleTempFilterChange('status', 'ONGOING')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'ONGOING' ? 'bg-orange-500 text-white border-orange-500' : 'bg-[#1a1a2e] border-white/10'}`}>Đang Tiến Hành</button>
+                            {/* Chỉ hiện nút Truyện Mới / Sắp ra mắt khi KHÔNG lọc theo thể loại (vì API thể loại không hỗ trợ) */}
+                            {!filter.category && (
+                                <button onClick={() => handleTempFilterChange('status', 'NEW')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'NEW' ? 'bg-primary text-white border-primary' : 'bg-[#1a1a2e] border-white/10'}`}>Truyện Mới</button>
+                            )}
+                            
+                            <button onClick={() => handleTempFilterChange('status', 'ONGOING')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'ONGOING' ? 'bg-green-600 text-white border-green-600' : 'bg-[#1a1a2e] border-white/10'}`}>Đang Tiến Hành</button>
                             <button onClick={() => handleTempFilterChange('status', 'COMPLETED')} className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${tempFilter.status === 'COMPLETED' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[#1a1a2e] border-white/10'}`}>Hoàn Thành</button>
                             
                             {!filter.category && (
@@ -312,7 +304,8 @@ const ListPage = () => {
                         <h4 className="text-white font-bold text-sm uppercase mb-3 border-l-2 border-green-500 pl-2">Sắp Xếp</h4>
                         <div className="flex flex-wrap gap-2">
                             {[
-                                { id: 'default', label: 'Mới Cập Nhật' },
+                                { id: 'default', label: 'Mặc Định' },
+                                { id: 'new_update', label: 'Mới Cập Nhật' }, // Thêm option này cho rõ
                                 { id: 'chapter_desc', label: 'Nhiều Chương' },
                                 { id: 'chapter_asc', label: 'Ít Chương' },
                                 { id: 'name_az', label: 'Tên A-Z' },
@@ -414,7 +407,6 @@ const ListPage = () => {
                 <div className="py-20 text-center text-gray-500 bg-[#151525] rounded-xl border border-white/5 border-dashed">
                     <RiErrorWarningLine className="text-5xl mx-auto mb-4 opacity-50" />
                     <p>Không tìm thấy truyện nào phù hợp.</p>
-                    {/* Nút Reset thông minh hơn */}
                     <button onClick={handleResetFilter} className="mt-4 text-primary hover:underline text-sm font-bold">
                         Xóa bộ lọc (Giữ thể loại hiện tại)
                     </button>
