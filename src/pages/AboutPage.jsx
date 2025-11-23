@@ -4,7 +4,8 @@ import Header from '../components/layouts/Header';
 import Footer from '../components/layouts/Footer';
 import { 
   RiRocketLine, RiUserHeartLine, RiBookOpenLine, 
-  RiGlobalLine, RiShieldCheckLine, RiFlashlightLine 
+  RiGlobalLine, RiShieldCheckLine, RiFlashlightLine,
+  RiSmartphoneLine, RiAppleFill, RiAndroidFill, RiCoffeeLine
 } from 'react-icons/ri';
 
 const AboutPage = () => {
@@ -102,6 +103,81 @@ const AboutPage = () => {
                             </p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        {/* --- [MỚI] PWA INSTALL GUIDE --- */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+            <div className="bg-[#1a1a2e] border border-white/5 rounded-3xl p-8 md:p-12 relative overflow-hidden">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
+                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold mb-6">
+                            <RiSmartphoneLine /> Ứng Dụng Di Động
+                        </div>
+                        <h2 className="text-3xl font-black text-white mb-6 leading-tight">
+                            Trải Nghiệm Tốt Nhất Trên Điện Thoại Của Bạn
+                        </h2>
+                        <p className="text-gray-400 leading-relaxed mb-8">
+                            TruyenVietHay hỗ trợ cài đặt trực tiếp lên màn hình chính điện thoại (PWA). Không cần tải từ App Store/CH Play, không tốn dung lượng, đọc truyện full màn hình cực đã.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-6">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0"><RiAppleFill size={20} /></div>
+                                <div>
+                                    <h4 className="text-white font-bold mb-1">iOS (iPhone/iPad)</h4>
+                                    <p className="text-xs text-gray-500">Mở Safari → Bấm nút Chia sẻ <span className="inline-block border border-gray-600 rounded px-1">↑</span> → Chọn "Thêm vào Màn hình chính".</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0"><RiAndroidFill size={20} /></div>
+                                <div>
+                                    <h4 className="text-white font-bold mb-1">Android</h4>
+                                    <p className="text-xs text-gray-500">Mở Chrome → Bấm menu <span className="inline-block border border-gray-600 rounded px-1">⋮</span> → Chọn "Cài đặt ứng dụng" hoặc "Thêm vào Màn hình chính".</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Ảnh Mockup điện thoại (Bạn có thể thay bằng ảnh thật sau) */}
+                    <div className="relative h-[400px] bg-[#101022] rounded-[2.5rem] border-8 border-[#252538] shadow-2xl overflow-hidden transform rotate-3 hover:rotate-0 transition-all duration-500">
+                        <img src="/logo.png" alt="App Mockup" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 opacity-50" />
+                        <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-primary/20 to-transparent"></div>
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-6 bg-[#252538] rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* --- [MỚI] DONATE SECTION --- */}
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 text-center">
+             <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-full text-sm font-bold mb-6">
+                <RiCoffeeLine /> Ủng Hộ Dự Án
+            </div>
+            <h2 className="text-3xl font-black text-white mb-6">
+                Tiếp Sức Cho Đam Mê
+            </h2>
+            <p className="text-gray-400 leading-relaxed mb-8">
+                TruyenVietHay là một dự án phi lợi nhuận được duy trì bởi niềm đam mê. Mọi sự ủng hộ của bạn sẽ được dùng để chi trả phí server, nâng cấp hệ thống và mua thêm cà phê cho đội ngũ phát triển. ☕
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                {/* Momo */}
+                <div className="bg-[#1a1a2e] border border-white/5 rounded-2xl p-6 hover:border-pink-500/50 transition-colors group relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="Momo" className="h-10 mx-auto mb-4 filter grayscale group-hover:grayscale-0 transition-all" />
+                    <h4 className="text-white font-bold mb-2">Ví MoMo</h4>
+                    <p className="text-xl text-pink-500 font-black">0987654321</p>
+                    <p className="text-sm text-gray-500">(Nguyen Van A)</p>
+                </div>
+                
+                {/* Ngân Hàng */}
+                <div className="bg-[#1a1a2e] border border-white/5 rounded-2xl p-6 hover:border-blue-500/50 transition-colors group relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/40/JPMorgan_Chase.svg" alt="Bank" className="h-10 mx-auto mb-4 filter grayscale group-hover:grayscale-0 transition-all" />
+                    <h4 className="text-white font-bold mb-2">Ngân Hàng MB Bank</h4>
+                    <p className="text-xl text-blue-500 font-black">123456789</p>
+                    <p className="text-sm text-gray-500">(Nguyen Van A)</p>
                 </div>
             </div>
         </div>
