@@ -119,6 +119,7 @@ const Header = () => {
               </div>
             </div>
             <Link to="/xep-hang" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors">Xếp Hạng</Link>
+            <Link to="/about" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors">Giới Thiệu</Link>
           </nav>
 
           <div className="flex items-center gap-3">
