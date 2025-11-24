@@ -14,7 +14,6 @@ import {
 
 // URL Backend (dùng để hiển thị avatar người dùng)
 const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
-// Domain ảnh truyện (để hiển thị ảnh trong live search)
 const COMIC_IMAGE_DOMAIN = 'https://img.otruyenapi.com/uploads/comics/';
 
 const Header = () => {
@@ -23,11 +22,10 @@ const Header = () => {
     const [keyword, setKeyword] = useState('');
 
     // --- STATE MỚI CHO LIVE SEARCH ---
-    const [searchResults, setSearchResults] = useState([]); // Lưu kết quả gợi ý
-    const [showDropdown, setShowDropdown] = useState(false); // Hiển thị/ẩn dropdown
-    const [isSearching, setIsSearching] = useState(false); // Trạng thái đang loading tìm kiếm
-    const searchRef = useRef(null); // Ref để xử lý click ra ngoài thì đóng dropdown
-    // ---------------------------------
+    const [searchResults, setSearchResults] = useState([]); 
+    const [showDropdown, setShowDropdown] = useState(false); 
+    const [isSearching, setIsSearching] = useState(false); 
+    const searchRef = useRef(null);
 
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -36,7 +34,6 @@ const Header = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
-    // ... (Giữ nguyên các hàm getAvatarUrl, fetchNotifications, handleReadNotify)
     const getAvatarUrl = (avatarPath) => {
         if (!avatarPath) return null;
         if (avatarPath.startsWith('http')) return avatarPath;
@@ -64,7 +61,7 @@ const Header = () => {
     };
 
 
-    // --- EFFECT XỬ LÝ LIVE SEARCH (DEBOUNCE) ---
+    // effect để xử lý live search với debounce
     useEffect(() => {
         // Chỉ tìm kiếm khi từ khóa có ít nhất 2 ký tự
         if (keyword.trim().length < 2) {
@@ -76,12 +73,10 @@ const Header = () => {
         setIsSearching(true);
         setShowDropdown(true);
 
-        // Tạo delay 500ms (Debounce)
         const delayDebounceFn = setTimeout(async () => {
             try {
                 // Gọi trực tiếp API Otruyen để lấy gợi ý nhanh
                 const response = await axios.get(`https://otruyenapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
-                // Chỉ lấy 5 kết quả đầu tiên để hiển thị gọn gàng
                 setSearchResults(response.data.data.items.slice(0, 5));
             } catch (error) {
                 console.error("Lỗi live search:", error);
@@ -89,13 +84,11 @@ const Header = () => {
             } finally {
                 setIsSearching(false);
             }
-        }, 500); // Chờ 500ms sau khi ngừng gõ mới gọi API
-
-        // Cleanup function: Hủy timeout cũ nếu người dùng gõ tiếp
+        }, 500);
         return () => clearTimeout(delayDebounceFn);
     }, [keyword]);
 
-    // --- EFFECT ĐÓNG DROPDOWN KHI CLICK RA NGOÀI ---
+    // effect để đóng dropdown khi click ra ngoài
     useEffect(() => {
         function handleClickOutside(event) {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -106,8 +99,6 @@ const Header = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [searchRef]);
 
-
-    // ... (Giữ nguyên useEffect fetchCategories và notifications)
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -125,10 +116,9 @@ const Header = () => {
     // Hàm xử lý khi nhấn Enter hoặc click nút tìm kiếm
     const handleSearchSubmit = () => {
         if (keyword.trim()) {
-            setShowDropdown(false); // Đóng dropdown gợi ý
+            setShowDropdown(false);
             setMobileMenuOpen(false);
-            navigate(`/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
-            // Không xóa keyword để người dùng biết mình đang tìm gì
+            navigate(`/tim-kiem?keyword=${encodeURIComponent(keyword)}`)
         }
     };
 
@@ -146,8 +136,6 @@ const Header = () => {
 
     // Giao diện từng item trong dropdown gợi ý
 const SearchResultItem = ({ item }) => {
-        // 1. Lấy tên chương mới nhất từ mảng chaptersLatest (API Otruyen trả về)
-        // Sử dụng optional chaining (?.) để tránh lỗi nếu dữ liệu không tồn tại
         const latestChapName = item.chaptersLatest?.[0]?.chapter_name;
         
         return (
@@ -156,7 +144,7 @@ const SearchResultItem = ({ item }) => {
                 className="flex items-center gap-3 p-2 hover:bg-white/10 rounded-lg transition-colors"
                 onClick={() => {
                     setShowDropdown(false);
-                    setKeyword(''); // Chọn xong thì xóa từ khóa
+                    setKeyword(''); 
                     setMobileMenuOpen(false);
                 }}
             >
@@ -164,7 +152,6 @@ const SearchResultItem = ({ item }) => {
                 <div className="min-w-0">
                     <h4 className="text-white text-sm font-bold truncate">{item.name}</h4>
                     
-                    {/* 2. Hiển thị Chương thay vì Tác giả */}
                     <p className="text-green-500 text-xs font-bold truncate">
                         {latestChapName ? `Chương ${latestChapName}` : 'Đang cập nhật'}
                     </p>
@@ -178,14 +165,12 @@ const SearchResultItem = ({ item }) => {
         <header className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md border-b border-white/5 font-display">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    {/* ... (Logo và Desktop Nav giữ nguyên) ... */}
                     <Link to="/" className="flex-shrink-0">
                         <img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain" />
                     </Link>
 
                     <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
                         <Link to="/" className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider transition-colors">Trang Chủ</Link>
-                        {/* ... (Dropdown Thể loại giữ nguyên) ... */}
                         <div className="group relative py-4">
                             <button className="text-gray-300 hover:text-primary text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors">
                                 Thể Loại
@@ -204,7 +189,6 @@ const SearchResultItem = ({ item }) => {
                     </nav>
 
                     <div className="flex items-center gap-3">
-                        {/* --- SEARCH DESKTOP (CÓ LIVE SEARCH) --- */}
                         <div className="hidden md:block relative" ref={searchRef}>
                             <div className="flex items-center bg-[#252538] rounded-full px-3 py-1.5 border border-white/5 focus-within:border-primary/50 transition-colors relative z-20">
                                 <RiSearchLine className="text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={handleSearchSubmit} />
@@ -219,8 +203,6 @@ const SearchResultItem = ({ item }) => {
                                 />
                                 {isSearching && <RiLoader4Line className="animate-spin text-primary text-xs absolute right-3" />}
                             </div>
-
-                            {/* --- DROPDOWN GỢI Ý KẾT QUẢ --- */}
                             {showDropdown && keyword.length >= 2 && (
                                 <div className="absolute top-full mt-2 left-0 w-64 lg:w-80 bg-[#1a1a2e] border border-white/10 rounded-xl shadow-2xl p-2 z-10 animate-fade-in-up">
                                     {isSearching ? (
@@ -242,8 +224,6 @@ const SearchResultItem = ({ item }) => {
                                 </div>
                             )}
                         </div>
-
-                        {/* ... (Phần User Menu và Mobile Toggle giữ nguyên) ... */}
                          {user ? (
                             <div className="flex items-center gap-3 md:gap-4">
                                 {/* Nút thông báo */}
@@ -254,7 +234,6 @@ const SearchResultItem = ({ item }) => {
                                     </button>
                                     {/* Dropdown thông báo */}
                                     <div className={`bg-[#1a1a2e] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 fixed top-16 left-2 right-2 lg:absolute lg:top-full lg:right-0 lg:left-auto lg:w-80 lg:mt-2 transition-all duration-200 ${showNotifDropdown ? 'block' : 'hidden lg:group-hover:block lg:opacity-0 lg:group-hover:opacity-100 lg:invisible lg:group-hover:visible'}`}>
-                                        {/* ... (Nội dung dropdown thông báo giữ nguyên) */}
                                          <div className="p-3 border-b border-white/5 flex justify-between items-center bg-white/5">
                                             <h4 className="text-white font-bold text-sm">Thông Báo</h4>
                                             <button onClick={() => setShowNotifDropdown(false)} className="lg:hidden text-gray-400"><RiCloseLine /></button>
@@ -314,11 +293,10 @@ const SearchResultItem = ({ item }) => {
                 </div>
             </div>
 
-            {/* --- MOBILE MENU (Cũng cần cập nhật Live Search ở đây) --- */}
+            {/* --- MOBILE MENU --- */}
             {mobileMenuOpen && (
                 <div className="lg:hidden bg-[#1a1a2e] border-t border-white/10 absolute w-full shadow-2xl z-40 h-[calc(100vh-64px)] overflow-y-auto pb-20 animate-fade-in-left">
                     <div className="p-4 flex flex-col gap-3">
-                        {/* ... (User Info Mobile giữ nguyên) ... */}
                         {user && (
                             <div className="flex items-center gap-3 bg-[#252538] p-3 rounded-xl border border-white/5 mb-2">
                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-700 border border-white/10">
@@ -363,8 +341,6 @@ const SearchResultItem = ({ item }) => {
                                 </div>
                             )}
                         </div>
-
-                        {/* ... (Các link menu mobile giữ nguyên) ... */}
                         <Link to="/" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors" onClick={() => setMobileMenuOpen(false)}>Trang Chủ</Link>
                         <Link to="/danh-sach" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}><RiLayoutGridFill className="text-primary"/> Thể Loại</Link>
                         <Link to="/xep-hang" className="text-gray-300 font-bold p-3 rounded-xl hover:bg-white/5 transition-colors flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}><RiTrophyFill className="text-primary"/> Xếp Hạng</Link>
