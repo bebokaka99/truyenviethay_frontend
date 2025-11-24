@@ -254,14 +254,16 @@ const ComicDetailPage = () => {
                 {/* Tên truyện */}
                 <h1 className="text-2xl md:text-4xl font-black text-white leading-tight font-heading drop-shadow-md">{comic.name}</h1>
                 
-                {/* --- HIỂN THỊ TÊN KHÁC (NẾU CÓ) --- */}
-                {comic.origin_name && comic.origin_name.length > 0 && (
-                    <p className="text-sm text-gray-400 line-clamp-2">
-                        <span className="font-bold text-primary">Tên khác: </span>
-                        {comic.origin_name.join(' | ')}
-                    </p>
-                )}
-                {/* ----------------------------------- */}
+                {/* --- CẬP NHẬT PHẦN HIỂN THỊ TÊN KHÁC --- */}
+                <p className="text-sm text-gray-400 line-clamp-2">
+                    <span className="font-bold text-primary">Tên khác: </span>
+                    {/* Nếu có origin_name và mảng không rỗng thì join lại, ngược lại thì hiện tên chính */}
+                    {comic.origin_name && comic.origin_name.length > 0 
+                        ? comic.origin_name.join(' | ') 
+                        : comic.name
+                    }
+                </p>
+                {/* ----------------------------------------- */}
 
                 {/* Thể loại */}
                 <div className="flex flex-wrap justify-center md:justify-start gap-2 text-sm mt-1">
