@@ -3,13 +3,14 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import LevelBadge from '../common/LevelBadge';
+import Toast from '../common/Toast'; // Import thêm Toast để thông báo lỗi
 import { 
     RiSendPlaneFill, RiChat1Line, RiTimeLine, 
-    RiThumbUpLine, RiThumbUpFill, RiReplyFill, 
+    RiThumbUpLine, RiThumbUpFill, 
     RiLoader4Line 
 } from 'react-icons/ri';
 
-// Thay thế bằng URL backend thực tế (nếu cần)
+// Thay thế bằng URL backend thực tế
 const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
 
 const CommentSection = ({ comicSlug, chapterName = null }) => {
@@ -20,11 +21,12 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     const [activeReplyId, setActiveReplyId] = useState(null); 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [toast, setToast] = useState(null); // State cho toast thông báo
 
     const getAvatar = (path) => {
         if (!path) return `https://ui-avatars.com/api/?background=random`;
         if (path.startsWith('http')) return path;
-        return `${BACKEND_URL}/${path}`; // Sử dụng biến BACKEND_URL
+        return `${BACKEND_URL}/${path}`;
     };
 
     const timeAgo = (dateString) => {
@@ -42,8 +44,9 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     useEffect(() => {
         const fetchComments = async () => {
             try {
+                // Quan trọng: Truyền userId để backend biết user này đã like comment nào chưa
                 const userIdParam = user ? `&userId=${user.id}` : '';
-                const chapterParam = `?chapter_name=${chapterName || ''}`; 
+                const chapterParam = `?chapter_name=${chapterName || 'null'}`; 
                 
                 const res = await axios.get(`${BACKEND_URL}/api/comments/${comicSlug}${chapterParam}${userIdParam}`);
                 setComments(res.data);
@@ -68,6 +71,7 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                 chapter_name: chapterName 
             }, { headers: { Authorization: `Bearer ${token}` } });
 
+            // Thêm comment mới vào đầu danh sách
             setComments([res.data, ...comments]);
             
             if (parentId) {
@@ -76,36 +80,87 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
             } else {
                 setContent('');
             }
-        } catch (error) { alert("Lỗi gửi bình luận!"); }
+        } catch (error) { 
+            setToast({ message: "Lỗi gửi bình luận. Vui lòng thử lại!", type: "error" });
+        }
         finally { setSubmitting(false); }
     };
 
+    // --- HÀM XỬ LÝ LIKE (ĐÃ SỬA) ---
     const handleLike = async (commentId) => {
-        if (!user) return alert("Vui lòng đăng nhập để thích!");
+        if (!user) {
+            setToast({ message: "Vui lòng đăng nhập để thích bình luận!", type: "info" });
+            return;
+        }
         
-        const updatedComments = comments.map(c => {
-            if (c.id === commentId) {
-                return {
-                    ...c,
-                    is_liked: !c.is_liked,
-                    like_count: c.is_liked ? c.like_count - 1 : c.like_count + 1
-                };
-            }
-            return c;
-        });
-        setComments(updatedComments);
+        // 1. Cập nhật UI ngay lập tức (Optimistic Update) sử dụng đệ quy
+        setComments(prevComments => {
+            // Hàm đệ quy để tìm và update comment (kể cả comment con)
+            const updateCommentRecursive = (list) => {
+                return list.map(cmt => {
+                    if (cmt.id === commentId) {
+                        // Nếu tìm thấy comment được like
+                        const newIsLiked = !cmt.is_liked;
+                        return {
+                            ...cmt,
+                            is_liked: newIsLiked,
+                            like_count: newIsLiked ? cmt.like_count + 1 : cmt.like_count - 1
+                        };
+                    }
+                    // Nếu không phải comment này, kiểm tra xem nó có phải là cha của comment cần tìm không
+                    // (Ở đây cấu trúc dữ liệu của bạn là phẳng, không lồng nhau, nên logic này có thể đơn giản hơn,
+                    // nhưng giữ nguyên đệ quy sẽ an toàn hơn nếu sau này bạn đổi cấu trúc)
+                    return cmt; 
+                });
+            };
 
+            // Vì cấu trúc comments hiện tại là danh sách phẳng, map một lần là đủ
+            return prevComments.map(cmt => {
+                 if (cmt.id === commentId) {
+                    const newIsLiked = !cmt.is_liked;
+                    return {
+                        ...cmt,
+                        is_liked: newIsLiked,
+                        like_count: newIsLiked ? cmt.like_count + 1 : cmt.like_count - 1
+                    };
+                }
+                return cmt;
+            });
+        });
+
+        // 2. Gọi API để đồng bộ với server
         try {
             const token = localStorage.getItem('user_token');
-            await axios.post(`${API_URL}/api/comments/like`, { comment_id: commentId }, {
+            // Sửa lại URL: dùng BACKEND_URL thay vì API_URL
+            await axios.post(`${BACKEND_URL}/api/comments/like`, { comment_id: commentId }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-        } catch (error) { console.error("Lỗi like:", error); }
+            // Không cần làm gì thêm nếu thành công vì UI đã cập nhật trước đó
+        } catch (error) { 
+            console.error("Lỗi like:", error);
+            // Nếu lỗi, revert lại UI (có thể làm nếu muốn trải nghiệm hoàn hảo, 
+            // nhưng ở mức độ này thì có thể bỏ qua để code đơn giản)
+            setToast({ message: "Lỗi kết nối. Thao tác chưa được lưu.", type: "error" });
+             // Revert lại UI nếu lỗi (Tuỳ chọn)
+             setComments(prevComments => prevComments.map(cmt => {
+                 if(cmt.id === commentId) {
+                     const oldIsLiked = !cmt.is_liked; // Đảo ngược lại trạng thái vừa set
+                     return {
+                         ...cmt,
+                         is_liked: oldIsLiked,
+                         like_count: oldIsLiked ? cmt.like_count + 1 : cmt.like_count - 1
+                     }
+                 }
+                 return cmt;
+             }));
+        }
     };
+    // ----------------------------------
 
     const rootComments = comments.filter(c => !c.parent_id);
 
     const CommentItem = ({ cmt, isReply = false }) => {
+        // Lấy các comment con của comment hiện tại
         const replies = comments.filter(c => c.parent_id === cmt.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
         return (
@@ -158,6 +213,7 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                         </form>
                     )}
 
+                    {/* Hiển thị các comment con (đệ quy) */}
                     {replies.map(reply => (
                         <CommentItem key={reply.id} cmt={reply} isReply={true} />
                     ))}
@@ -167,7 +223,7 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     };
 
     return (
-        <div className="bg-[#1a1a2e] rounded-xl p-4 md:p-6 border border-white/5 shadow-sm mt-8">
+        <div className="bg-[#1a1a2e] rounded-xl p-4 md:p-6 border border-white/5 shadow-sm mt-8 relative">
             <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6 uppercase tracking-wider border-l-4 border-primary pl-3">
                 <RiChat1Line /> 
                 {chapterName ? `Bình Luận Chương ${chapterName}` : 'Bình Luận Bộ Truyện'} 
@@ -210,6 +266,8 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                     </div>
                 )}
             </div>
+             {/* Hiển thị Toast thông báo lỗi nếu có */}
+             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
