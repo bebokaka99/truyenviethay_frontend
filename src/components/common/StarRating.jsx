@@ -1,33 +1,45 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { RiStarFill, RiStarHalfFill, RiStarLine } from 'react-icons/ri';
 
 const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => {
   const [hoverRating, setHoverRating] = useState(0);
   const containerRef = useRef(null);
 
-  // --- HÀM TÍNH TOÁN CHUNG (CHO CẢ MOUSE VÀ TOUCH) ---
-  // Hàm này xác định điểm dựa trên element cụ thể đang được tương tác
-  const calculateRatingInStar = useCallback((clientX, starContainer) => {
-    const { left, width } = starContainer.getBoundingClientRect();
-    // Lấy index từ attribute data-index đã gán
-    const index = parseInt(starContainer.getAttribute('data-index'), 10);
-    
-    // Tính vị trí tương đối trong sao đó
-    // Math.max/min để đảm bảo nếu chạm hơi lệch ra ngoài padding vẫn tính đúng rìa
-    const relativeX = Math.max(0, Math.min(clientX - left, width));
-    const percent = relativeX / width;
+  // --- LOGIC TÍNH TOÁN CỐT LÕI (DÙNG CHO CẢ MOUSE VÀ TOUCH) ---
+  // Tính điểm dựa trên vị trí X tương đối trong TOÀN BỘ container
+  const calculateRating = (clientX) => {
+      if (!containerRef.current) return 0;
+      const { left, width } = containerRef.current.getBoundingClientRect();
+      
+      // 1. Tính vị trí tương đối của điểm chạm so với mép trái container
+      let relativeX = clientX - left;
 
-    // Nếu vị trí ở nửa trái (< 50%) -> X.5, ngược lại -> X.0
-    // Sử dụng ngưỡng 0.5 là chuẩn xác nhất.
-    return percent < 0.5 ? index + 0.5 : index + 1;
-  }, []);
+      // 2. Giới hạn (Clamp) để đảm bảo không vượt quá mép trái/phải
+      // Nếu kéo ra ngoài bên trái -> 0, kéo ra ngoài bên phải -> max width
+      relativeX = Math.max(0, Math.min(relativeX, width));
 
+      // 3. Tính tỷ lệ phần trăm vị trí trên tổng chiều rộng (0.0 -> 1.0)
+      const percent = relativeX / width;
+      
+      // 4. Quy đổi ra thang điểm 5 (0.0 -> 5.0)
+      let rawScore = percent * 5;
+
+      // 5. Làm tròn thông minh về mức 0.5 gần nhất
+      // Công thức: Nhân 2, làm tròn tới số nguyên gần nhất, rồi chia lại cho 2.
+      // VD: 4.2 -> 8.4 -> round(8) -> 4.0
+      // VD: 4.3 -> 8.6 -> round(9) -> 4.5
+      // VD: 4.8 -> 9.6 -> round(10) -> 5.0
+      let finalScore = Math.round(rawScore * 2) / 2;
+
+      // Đảm bảo điểm tối thiểu là 0.5 khi đã chạm vào vùng đánh giá
+      return finalScore < 0.5 ? 0.5 : finalScore;
+  };
 
   // --- HANDLERS CHO PC (MOUSE) ---
-  // Mouse thì đơn giản vì e.currentTarget chính là element đang hover
   const handleMouseMove = (e) => {
     if (readonly) return;
-    const value = calculateRatingInStar(e.clientX, e.currentTarget);
+    // MouseMove trên PC cũng dùng logic tính toán tổng thể này luôn cho đồng nhất
+    const value = calculateRating(e.clientX);
     setHoverRating(value);
   };
 
@@ -36,57 +48,37 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
   };
 
   const handleClick = () => {
+      // Khi click, dùng giá trị hover hiện tại (đã được tính toán chính xác)
       if (!readonly && onRate && hoverRating > 0) {
           onRate(hoverRating);
       }
   };
 
   // --- HANDLERS CHO MOBILE (TOUCH) ---
-  // Touch phức tạp hơn vì phải tìm element dựa trên tọa độ
-  const handleTouchMove = (e) => {
-      if (readonly || !containerRef.current) return;
-      
-      // Ngăn browser cuộn trang khi đang kéo sao
-      if (e.cancelable) e.preventDefault();
-
-      const touch = e.touches[0];
-      // Tìm element tại vị trí ngón tay
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-
-      // Kiểm tra:
-      // 1. Có tìm thấy target không?
-      // 2. Target đó có nằm trong component StarRating này không?
-      if (!target || !containerRef.current.contains(target)) {
-          // Nếu trượt ra ngoài khu vực sao, có thể reset hover hoặc giữ nguyên cái cuối cùng
-          // Ở đây chọn giữ nguyên để trải nghiệm tốt hơn.
-          return; 
-      }
-
-      // Tìm thẻ div chứa sao gần nhất (có attribute data-index)
-      const starContainer = target.closest('[data-index]');
-
-      if (starContainer) {
-          // Nếu tìm thấy, tính toán điểm trong sao đó
-          const value = calculateRatingInStar(touch.clientX, starContainer);
-          setHoverRating(value);
-      }
-  };
-
-  // Xử lý khi vừa chạm vào (tương tự touchmove)
   const handleTouchStart = (e) => {
-       handleTouchMove(e);
+      if (readonly) return;
+      const score = calculateRating(e.touches[0].clientX);
+      setHoverRating(score);
   }
+
+  const handleTouchMove = (e) => {
+      if (readonly) return;
+      // Ngăn scroll trang khi đang vuốt chọn sao
+      if (e.cancelable) e.preventDefault(); 
+      
+      const score = calculateRating(e.touches[0].clientX);
+      setHoverRating(score);
+  };
 
   const handleTouchEnd = (e) => {
       if (!readonly && onRate) {
           if (e.cancelable) e.preventDefault();
           
-          // Gửi điểm số hiện tại (hoverRating) đi
-          // Đảm bảo điểm > 0 mới gửi
-          if (hoverRating >= 0.5) {
+          // Gửi điểm số đi
+          if (hoverRating > 0) {
               onRate(hoverRating);
           }
-          // Reset hover sau khi chọn xong
+          // Reset hover
           setHoverRating(0);
       }
   };
@@ -96,9 +88,12 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
   return (
     <div 
         ref={containerRef}
-        // touch-action: none cực kỳ quan trọng để browser không can thiệp vào thao tác vuốt
-        className="flex items-center gap-1 select-none touch-none" 
+        // touch-action: none -> QUAN TRỌNG: Báo trình duyệt không can thiệp scroll/zoom ở khu vực này
+        // select-none -> Không bôi đen khi kéo
+        className="flex items-center gap-1 select-none touch-none py-2" // Thêm py-2 để tăng vùng chạm theo chiều dọc
         onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove} // Gán sự kiện chuột vào container tổng
+        onClick={handleClick}         // Gán sự kiện click vào container tổng
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -108,22 +103,16 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
         const halfValue = i + 0.5;
 
         return (
-          <div
-            key={i}
-            data-index={i} // <-- QUAN TRỌNG: Gán index vào DOM để tìm lại sau này
-            // Thêm padding (p-1 hoặc p-1.5) để tăng diện tích chạm cho dễ
-            className={`relative cursor-${readonly ? 'default' : 'pointer'} transition-transform hover:scale-110 p-1.5`} 
-            onMouseMove={handleMouseMove}
-            onClick={handleClick}
-          >
+          // pointer-events-none trên các div con là QUAN TRỌNG.
+          // Nó đảm bảo mọi sự kiện chuột/chạm đều đi thẳng qua chúng và được container cha xử lý.
+          <div key={i} className="relative transition-transform hover:scale-110 pointer-events-none p-0.5">
               {/* Icon ngôi sao */}
-              {/* pointer-events-none bắt buộc để document.elementFromPoint bỏ qua icon và trúng vào div cha */}
               {displayRating >= fullValue ? (
-                  <RiStarFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} />
+                  <RiStarFill className={`${size} text-yellow-400 drop-shadow-md`} />
               ) : displayRating >= halfValue ? (
-                  <RiStarHalfFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} />
+                  <RiStarHalfFill className={`${size} text-yellow-400 drop-shadow-md`} />
               ) : (
-                  <RiStarLine className={`${size} text-gray-600 pointer-events-none`} />
+                  <RiStarLine className={`${size} text-gray-600`} />
               )}
           </div>
         );
