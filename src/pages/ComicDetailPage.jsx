@@ -7,7 +7,7 @@ import Footer from '../components/layouts/Footer';
 import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection';
 import StarRating from '../components/common/StarRating';
-import Toast from '../common/Toast';
+import Toast from '../components/common/Toast'
 import SEO from '../components/common/SEO';
 import { 
   RiBookOpenLine, RiBookmarkLine, RiUser3Line, RiTimeLine, 
