@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast'; 
 import { AuthProvider } from './contexts/AuthContext';
-import AdminRoute from './components/auth/AdminRoute';
+import AdminRoute from './components/auth/AdminRoute'; 
 
 // --- PAGES ---
 import HomePage from './pages/HomePage';
@@ -17,9 +17,9 @@ import HistoryPage from './pages/HistoryPage';
 import LibraryPage from './pages/LibraryPage';
 import RankingPage from './pages/RankingPage';
 import ListPage from './pages/ListPage';
-import SearchPage from './pages/SearchPage';
-import NotFoundPage from './pages/NotFoundPage';
-import AboutPage from './pages/AboutPage';
+import SearchPage from './pages/SearchPage'; 
+import NotFoundPage from './pages/NotFoundPage'; 
+import AboutPage from './pages/AboutPage'; 
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import NotificationsPage from './pages/NotificationsPage';
 
@@ -31,8 +31,8 @@ function App() {
   return (
     <AuthProvider>
       {/* Cấu hình Toast Notification Global */}
-      <Toaster
-        position="top-right"
+      <Toaster 
+        position="top-right" 
         toastOptions={{
           className: 'dark-toast',
           style: {
@@ -43,19 +43,18 @@ function App() {
           },
         }}
       />
-
+      
       <Routes>
-        <Header />
         {/* --- PUBLIC ROUTES --- */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/gioi-thieu" element={<AboutPage />} />
+        <Route path="/gioi-thieu" element={<AboutPage />} /> 
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         <Route path="/truyen-tranh/:slug" element={<ComicDetailPage />} />
         <Route path="/doc-truyen/:slug/:chapterName" element={<ChapterPage />} />
-
+        
         <Route path="/the-loai/:slug" element={<ListPage />} />
         <Route path="/danh-sach" element={<ListPage />} />
         <Route path="/tim-kiem" element={<SearchPage />} />
@@ -74,7 +73,6 @@ function App() {
         {/* --- 404 NOT FOUND (ĐẶT Ở CUỐI CÙNG) --- */}
         <Route path="*" element={<NotFoundPage />} />
 
-        <Footer />
       </Routes>
     </AuthProvider>
   );
