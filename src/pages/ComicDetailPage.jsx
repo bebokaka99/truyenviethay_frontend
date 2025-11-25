@@ -321,7 +321,7 @@ const ComicDetailPage = () => {
                         <div className="bg-[#1a1a2e] rounded-2xl border border-white/5 sticky top-24 overflow-hidden animate-fade-in-right">
                              <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                 <h2 className="text-lg font-bold text-white flex items-center gap-2"><RiEyeFill className="text-primary"/> GỢI Ý HÔM NAY</h2>
-                                <Link to="/danh-sach/truyen-moi" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine/></Link>
+                                <Link to="/danh-sach" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine/></Link>
                             </div>
                             <div className="p-4">
                                 {loadingSuggestions ? renderSuggestionSkeleton() : (
