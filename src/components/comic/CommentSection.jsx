@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom'; // Import thêm useLocation
 import { useAuth } from '../../contexts/AuthContext';
 import LevelBadge from '../common/LevelBadge';
-import Toast from '../common/Toast'; // Import thêm Toast để thông báo lỗi
+import Toast from '../common/Toast';
 import { 
     RiSendPlaneFill, RiChat1Line, RiTimeLine, 
     RiThumbUpLine, RiThumbUpFill, 
@@ -21,7 +21,10 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     const [activeReplyId, setActiveReplyId] = useState(null); 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [toast, setToast] = useState(null); // State cho toast thông báo
+    const [toast, setToast] = useState(null);
+
+    // Hook để lấy thông tin URL hiện tại (bao gồm phần hash #)
+    const location = useLocation();
 
     const getAvatar = (path) => {
         if (!path) return `https://ui-avatars.com/api/?background=random`;
@@ -41,10 +44,10 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
         return date.toLocaleDateString('vi-VN');
     };
 
+    // 1. Fetch Comments
     useEffect(() => {
         const fetchComments = async () => {
             try {
-                // Quan trọng: Truyền userId để backend biết user này đã like comment nào chưa
                 const userIdParam = user ? `&userId=${user.id}` : '';
                 const chapterParam = `?chapter_name=${chapterName || 'null'}`; 
                 
@@ -55,6 +58,37 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
         };
         if (comicSlug) fetchComments();
     }, [comicSlug, chapterName, user]);
+
+    // --- 2. EFFECT XỬ LÝ CUỘN ĐẾN BÌNH LUẬN (DEEP LINKING) ---
+    useEffect(() => {
+        // Chỉ chạy khi đã tải xong comments và trên URL có hash (ví dụ #comment-123)
+        if (!loading && comments.length > 0 && location.hash) {
+            // Lấy ID từ hash (bỏ dấu # ở đầu)
+            const targetId = location.hash.substring(1);
+            const targetElement = document.getElementById(targetId);
+
+            if (targetElement) {
+                // Delay nhẹ 500ms để đảm bảo DOM đã ổn định sau khi render
+                setTimeout(() => {
+                    targetElement.scrollIntoView({ 
+                        behavior: 'smooth', // Cuộn mượt
+                        block: 'center'     // Đưa phần tử vào giữa màn hình
+                    });
+                    
+                    // Thêm hiệu ứng highlight nhẹ để người dùng dễ nhận biết
+                    targetElement.classList.add('bg-white/10');
+                    // Sau 2 giây thì tắt highlight
+                    setTimeout(() => {
+                        targetElement.classList.remove('bg-white/10');
+                    }, 2000);
+
+                }, 500);
+            }
+        }
+    // Chạy lại effect này khi danh sách comment, trạng thái loading hoặc hash trên URL thay đổi
+    }, [comments, loading, location.hash]);
+    // -----------------------------------------------------
+
 
     const handleSubmit = async (e, parentId = null) => {
         e.preventDefault();
@@ -71,7 +105,6 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                 chapter_name: chapterName 
             }, { headers: { Authorization: `Bearer ${token}` } });
 
-            // Thêm comment mới vào đầu danh sách
             setComments([res.data, ...comments]);
             
             if (parentId) {
@@ -86,35 +119,14 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
         finally { setSubmitting(false); }
     };
 
-    // --- HÀM XỬ LÝ LIKE (ĐÃ SỬA) ---
     const handleLike = async (commentId) => {
         if (!user) {
             setToast({ message: "Vui lòng đăng nhập để thích bình luận!", type: "info" });
             return;
         }
         
-        // 1. Cập nhật UI ngay lập tức (Optimistic Update) sử dụng đệ quy
+        // Optimistic Update
         setComments(prevComments => {
-            // Hàm đệ quy để tìm và update comment (kể cả comment con)
-            const updateCommentRecursive = (list) => {
-                return list.map(cmt => {
-                    if (cmt.id === commentId) {
-                        // Nếu tìm thấy comment được like
-                        const newIsLiked = !cmt.is_liked;
-                        return {
-                            ...cmt,
-                            is_liked: newIsLiked,
-                            like_count: newIsLiked ? cmt.like_count + 1 : cmt.like_count - 1
-                        };
-                    }
-                    // Nếu không phải comment này, kiểm tra xem nó có phải là cha của comment cần tìm không
-                    // (Ở đây cấu trúc dữ liệu của bạn là phẳng, không lồng nhau, nên logic này có thể đơn giản hơn,
-                    // nhưng giữ nguyên đệ quy sẽ an toàn hơn nếu sau này bạn đổi cấu trúc)
-                    return cmt; 
-                });
-            };
-
-            // Vì cấu trúc comments hiện tại là danh sách phẳng, map một lần là đủ
             return prevComments.map(cmt => {
                  if (cmt.id === commentId) {
                     const newIsLiked = !cmt.is_liked;
@@ -128,43 +140,32 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
             });
         });
 
-        // 2. Gọi API để đồng bộ với server
+        // Call API
         try {
             const token = localStorage.getItem('user_token');
-            // Sửa lại URL: dùng BACKEND_URL thay vì API_URL
             await axios.post(`${BACKEND_URL}/api/comments/like`, { comment_id: commentId }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            // Không cần làm gì thêm nếu thành công vì UI đã cập nhật trước đó
         } catch (error) { 
             console.error("Lỗi like:", error);
-            // Nếu lỗi, revert lại UI (có thể làm nếu muốn trải nghiệm hoàn hảo, 
-            // nhưng ở mức độ này thì có thể bỏ qua để code đơn giản)
             setToast({ message: "Lỗi kết nối. Thao tác chưa được lưu.", type: "error" });
-             // Revert lại UI nếu lỗi (Tuỳ chọn)
-             setComments(prevComments => prevComments.map(cmt => {
-                 if(cmt.id === commentId) {
-                     const oldIsLiked = !cmt.is_liked; // Đảo ngược lại trạng thái vừa set
-                     return {
-                         ...cmt,
-                         is_liked: oldIsLiked,
-                         like_count: oldIsLiked ? cmt.like_count + 1 : cmt.like_count - 1
-                     }
-                 }
-                 return cmt;
-             }));
+             // Revert UI if needed (optional)
         }
     };
-    // ----------------------------------
 
     const rootComments = comments.filter(c => !c.parent_id);
 
     const CommentItem = ({ cmt, isReply = false }) => {
-        // Lấy các comment con của comment hiện tại
         const replies = comments.filter(c => c.parent_id === cmt.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
         return (
-            <div className={`flex gap-3 group ${isReply ? 'mt-3 ml-10 md:ml-14' : 'mt-6'}`}>
+            // --- THÊM ID CHO THẺ DIV BAO NGOÀI ---
+            // Thêm các class transition-all rounded-xl p-2 để hiệu ứng highlight đẹp hơn
+            <div 
+                id={`comment-${cmt.id}`} 
+                className={`flex gap-3 group transition-all rounded-xl p-2 duration-500 ${isReply ? 'mt-3 ml-10 md:ml-14' : 'mt-6'}`}
+            >
+            {/* ------------------------------------ */}
                 <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border border-white/10 flex-shrink-0 mt-1">
                     <img src={getAvatar(cmt.avatar)} alt={cmt.full_name} className="w-full h-full object-cover" />
                 </div>
@@ -213,7 +214,6 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                         </form>
                     )}
 
-                    {/* Hiển thị các comment con (đệ quy) */}
                     {replies.map(reply => (
                         <CommentItem key={reply.id} cmt={reply} isReply={true} />
                     ))}
@@ -266,7 +266,6 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                     </div>
                 )}
             </div>
-             {/* Hiển thị Toast thông báo lỗi nếu có */}
              {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
