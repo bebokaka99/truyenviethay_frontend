@@ -5,20 +5,47 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
   const [hoverRating, setHoverRating] = useState(0);
   const containerRef = useRef(null);
 
-  // Hàm tính toán điểm dựa trên vị trí con trỏ/ngón tay
-  const calculateRating = (clientX, currentTarget) => {
-    const { left, width } = currentTarget.getBoundingClientRect();
+  // --- HÀM TÍNH TOÁN ĐIỂM CHO MOUSE (PC) ---
+  const calculateMouseRating = (clientX, starElement) => {
+    const { left, width } = starElement.getBoundingClientRect();
     const percent = (clientX - left) / width;
-    const index = Array.from(containerRef.current.children).indexOf(currentTarget);
-    
+    const index = Array.from(containerRef.current.children).indexOf(starElement);
     // Nếu vị trí ở nửa trái (< 50%) -> X.5, ngược lại -> X.0
     return percent < 0.5 ? index + 0.5 : index + 1;
   };
 
-  // Xử lý cho chuột (PC)
+  // --- HÀM TÍNH TOÁN ĐIỂM CHO TOUCH (MOBILE) ---
+  // Tính toán dựa trên vị trí tương đối trong TOÀN BỘ container
+  const calculateTouchRating = (touchX) => {
+      if (!containerRef.current) return 0;
+      const { left, width } = containerRef.current.getBoundingClientRect();
+      
+      // Tính vị trí tương đối của điểm chạm so với mép trái container
+      let relativeX = touchX - left;
+
+      // Giới hạn không cho vượt quá mép trái hoặc phải
+      relativeX = Math.max(0, Math.min(relativeX, width));
+
+      // Tính tỷ lệ phần trăm
+      const percent = relativeX / width;
+      
+      // Quy đổi ra thang 5
+      let rawScore = percent * 5;
+
+      // Làm tròn lên mức 0.5 gần nhất (VD: 4.1 -> 4.5, 4.6 -> 5.0)
+      // Cách làm tròn này tạo cảm giác nhạy hơn trên màn hình cảm ứng
+      let finalScore = Math.ceil(rawScore * 2) / 2;
+
+      // Đảm bảo tối thiểu là 0.5 và tối đa là 5
+      return Math.max(0.5, Math.min(5, finalScore));
+  };
+  // -------------------------------------------
+
+
+  // --- HANDLERS CHO PC (MOUSE) ---
   const handleMouseMove = (e) => {
     if (readonly) return;
-    const value = calculateRating(e.clientX, e.currentTarget);
+    const value = calculateMouseRating(e.clientX, e.currentTarget);
     setHoverRating(value);
   };
 
@@ -32,48 +59,48 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
       }
   };
 
-  // Xử lý cho cảm ứng (Mobile/Tablet)
+  // --- HANDLERS CHO MOBILE (TOUCH) ---
+  const handleTouchStart = (e) => {
+      if (readonly) return;
+      // Tính toán ngay khi vừa chạm vào
+      const score = calculateTouchRating(e.touches[0].clientX);
+      setHoverRating(score);
+  }
+
   const handleTouchMove = (e) => {
       if (readonly) return;
-      // Ngăn chặn hành vi cuộn trang mặc định khi đang kéo trên sao
-      e.preventDefault(); 
-      const touch = e.touches[0];
-      // Tìm element ngôi sao đang được chạm vào
-      const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+      // Ngăn chặn hành vi cuộn trang khi đang kéo trên sao
+      if (e.cancelable) e.preventDefault(); 
       
-      // Kiểm tra xem element đó có phải là một ngôi sao trong component này không
-      if (targetElement && containerRef.current.contains(targetElement)) {
-           // Tìm thẻ div cha chứa icon ngôi sao (vì targetElement có thể là thẻ svg hoặc path bên trong)
-           const starContainer = targetElement.closest('div.relative');
-           if (starContainer) {
-               const value = calculateRating(touch.clientX, starContainer);
-               setHoverRating(value);
-           }
-      }
+      const score = calculateTouchRating(e.touches[0].clientX);
+      setHoverRating(score);
   };
 
   const handleTouchEnd = (e) => {
       if (!readonly && onRate) {
-          e.preventDefault();
-          // Khi nhấc tay lên, nếu đã có điểm hover thì gửi điểm đó
-          if (hoverRating > 0) {
+          // Ngăn chặn sự kiện click chuột ảo bắn ra sau khi touch end
+          if (e.cancelable) e.preventDefault();
+          
+          // Gửi điểm số đi nếu hợp lệ
+          if (hoverRating >= 0.5) {
               onRate(hoverRating);
           }
-          // Reset hover về 0
+          // Reset hover
           setHoverRating(0);
       }
   };
-
 
   const displayRating = hoverRating || rating;
 
   return (
     <div 
         ref={containerRef}
-        className="flex items-center gap-1 touch-none" // touch-none để browser không can thiệp vào sự kiện chạm
+        className="flex items-center gap-1 select-none" // select-none để tránh bôi đen khi kéo nhanh
         onMouseLeave={handleMouseLeave}
-        onTouchMove={handleTouchMove} // Thêm sự kiện touch
-        onTouchEnd={handleTouchEnd}   // Thêm sự kiện touch end
+        // Gán sự kiện Touch vào container cha
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
     >
       {[...Array(5)].map((_, i) => {
         const fullValue = i + 1;
@@ -82,13 +109,14 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
         return (
           <div
             key={i}
-            className={`relative cursor-${readonly ? 'default' : 'pointer'} transition-transform hover:scale-110 p-0.5`} // Thêm padding nhỏ để dễ chạm hơn
+            // Thêm padding để tăng diện tích trỏ chuột/chạm
+            className={`relative cursor-${readonly ? 'default' : 'pointer'} transition-transform hover:scale-110 p-1`} 
             onMouseMove={handleMouseMove}
             onClick={handleClick}
           >
-              {/* Render Icon dựa trên giá trị */}
+              {/* Icon ngôi sao */}
               {displayRating >= fullValue ? (
-                  <RiStarFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} /> // pointer-events-none để sự kiện chạm xuyên qua icon xuống div cha
+                  <RiStarFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} />
               ) : displayRating >= halfValue ? (
                   <RiStarHalfFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} />
               ) : (
@@ -98,9 +126,9 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
         );
       })}
       
-      {/* Hiển thị điểm số bên cạnh cho rõ */}
+      {/* Hiển thị điểm số bên cạnh */}
       {!readonly && (
-          <span className={`ml-2 font-bold text-lg ${hoverRating > 0 ? 'text-yellow-400' : 'text-gray-500'}`}>
+          <span className={`ml-2 font-bold text-lg min-w-[30px] ${hoverRating > 0 ? 'text-yellow-400' : 'text-gray-500'}`}>
               {displayRating > 0 ? displayRating.toFixed(1) : '0.0'}
           </span>
       )}
