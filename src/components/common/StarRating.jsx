@@ -3,79 +3,59 @@ import { RiStarFill, RiStarHalfFill, RiStarLine } from 'react-icons/ri';
 
 const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => {
   const [hoverRating, setHoverRating] = useState(0);
-  const containerRef = useRef(null);
+  // Ref này sẽ gắn vào lớp phủ tàng hình
+  const overlayRef = useRef(null);
 
-  // --- HÀM TÍNH TOÁN ĐIỂM TRÊN MỘT NGÔI SAO CỤ THỂ ---
-  // Hàm này chỉ quan tâm đến vị trí tương đối bên trong một starContainer duy nhất
-  const calculateRatingInStar = useCallback((clientX, starContainer) => {
-    const { left, width } = starContainer.getBoundingClientRect();
-    const index = parseInt(starContainer.getAttribute('data-index'), 10);
+  // --- HÀM TÍNH TOÁN TOÁN HỌC THUẦN TÚY ---
+  // Tính điểm dựa trên vị trí X tương đối trên tổng chiều rộng của lớp phủ
+  const calculateRating = useCallback((clientX) => {
+    if (!overlayRef.current) return 0;
+    const { left, width } = overlayRef.current.getBoundingClientRect();
     
-    // Tính vị trí X tương đối của điểm chạm so với mép trái của ngôi sao này
-    const relativeX = clientX - left;
+    // 1. Tính vị trí tương đối của điểm chạm so với mép trái
+    let relativeX = clientX - left;
+
+    // 2. Giới hạn (Clamp) để đảm bảo không vượt quá mép trái/phải container
+    relativeX = Math.max(0, Math.min(relativeX, width));
+
+    // 3. Tính tỷ lệ phần trăm (0.0 -> 1.0)
     const percent = relativeX / width;
 
-    // Quy tắc: Chạm vào nửa trái (< 50%) -> X.5, ngược lại -> X.0
-    return percent < 0.5 ? index + 0.5 : index + 1;
+    // 4. Quy đổi ra thang điểm 5
+    let rawScore = percent * 5;
+
+    // 5. Làm tròn thông minh về mức 0.5 gần nhất.
+    // Sử dụng Math.ceil để tạo cảm giác nhạy hơn: chỉ cần chạm nhẹ vào vùng sao tiếp theo là tính điểm.
+    // VD: 4.1 -> 8.2 -> ceil(9) -> 4.5
+    let finalScore = Math.ceil(rawScore * 2) / 2;
+
+    // Đảm bảo tối thiểu là 0.5 khi đã chạm vào vùng đánh giá, tối đa là 5
+    return Math.max(0.5, Math.min(5, finalScore));
   }, []);
 
 
-  // --- HANDLERS CHO PC (MOUSE) ---
-  const handleMouseMove = (e) => {
+  // --- HANDLERS CHO CẢ MOUSE VÀ TOUCH (Dùng chung logic) ---
+  const handleMove = (clientX) => {
     if (readonly) return;
-    // Với chuột, e.currentTarget chính là thẻ div bao quanh ngôi sao
-    const value = calculateRatingInStar(e.clientX, e.currentTarget);
+    const value = calculateRating(clientX);
     setHoverRating(value);
   };
 
-  const handleMouseLeave = () => {
+  const handleLeave = () => {
     if (!readonly) setHoverRating(0);
   };
 
-  const handleClick = () => {
-      if (!readonly && onRate && hoverRating > 0) {
-          onRate(hoverRating);
-      }
-  };
-
-  // --- HANDLERS CHO MOBILE (TOUCH) ---
-  const handleTouchMove = (e) => {
-      if (readonly || !containerRef.current) return;
-      
-      // Ngăn browser cuộn trang khi đang vuốt trên khu vực này
-      if (e.cancelable) e.preventDefault();
-
-      const touch = e.touches[0];
-      // 1. Bắn một tia tại vị trí ngón tay để xem nó trúng phần tử nào
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-
-      // 2. Đảm bảo phần tử đó nằm trong component rating này
-      if (!target || !containerRef.current.contains(target)) return;
-
-      // 3. Tìm thẻ div bao quanh ngôi sao gần nhất (thẻ có data-index)
-      // Nhờ CSS mới, các thẻ này nằm sát nhau nên chắc chắn sẽ tìm thấy.
-      const starContainer = target.closest('[data-index]');
-
-      if (starContainer) {
-          // 4. Tính toán điểm dựa trên ngôi sao tìm được
-          const value = calculateRatingInStar(touch.clientX, starContainer);
-          setHoverRating(value);
-      }
-  };
-
-  const handleTouchStart = (e) => {
-       handleTouchMove(e); // Xử lý ngay khi vừa chạm
-  }
-
-  const handleTouchEnd = (e) => {
+  const handleClickEnd = (e, clientX) => {
       if (!readonly && onRate) {
-          if (e.cancelable) e.preventDefault();
-          
-          // Gửi điểm số đi
-          if (hoverRating >= 0.5) {
-              onRate(hoverRating);
+          // Ngăn sự kiện click ảo trên mobile
+          if (e.cancelable && e.type === 'touchend') e.preventDefault();
+
+          // Tính toán điểm lần cuối tại vị trí nhấc tay/click
+          const finalScore = calculateRating(clientX);
+
+          if (finalScore >= 0.5) {
+              onRate(finalScore);
           }
-          // Reset hover
           setHoverRating(0);
       }
   };
@@ -83,49 +63,56 @@ const StarRating = ({ rating, onRate, readonly = false, size = "text-2xl" }) => 
   const displayRating = hoverRating || rating;
 
   return (
-    <div 
-        ref={containerRef}
-        // touch-action: none -> Bắt buộc để chặn scroll trên mobile
-        // Loại bỏ 'gap-1' để các vùng chạm sát nhau
-        className="flex items-center select-none touch-none py-1"
-        onMouseLeave={handleMouseLeave}
-        // Gán sự kiện Touch vào container cha để bắt được thao tác vuốt liên tục
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-    >
-      {[...Array(5)].map((_, i) => {
-        const fullValue = i + 1;
-        const halfValue = i + 0.5;
-
-        return (
-          <div
-            key={i}
-            data-index={i} // Index để định danh ngôi sao
-            // CSS QUAN TRỌNG:
-            // 1. flex-1: Để các ngôi sao chia đều không gian
-            // 2. p-1: Tạo vùng đệm xung quanh icon, giúp dễ chạm hơn
-            // 3. KHÔNG CÓ pointer-events-none: Để nó nhận được sự kiện touch/mouse
-            className={`relative flex-1 cursor-${readonly ? 'default' : 'pointer'} transition-transform hover:scale-110 p-1 flex justify-center`} 
-            onMouseMove={handleMouseMove}
-            onClick={handleClick}
-          >
-              {/* Icon ngôi sao */}
-              {/* pointer-events-none trên icon để sự kiện luôn trúng vào div cha */}
-              {displayRating >= fullValue ? (
-                  <RiStarFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} />
-              ) : displayRating >= halfValue ? (
-                  <RiStarHalfFill className={`${size} text-yellow-400 drop-shadow-md pointer-events-none`} />
-              ) : (
-                  <RiStarLine className={`${size} text-gray-600 pointer-events-none`} />
-              )}
-          </div>
-        );
-      })}
+    // Container chính: relative để làm mốc cho lớp phủ absolute
+    <div className="relative inline-block py-2">
       
-      {/* Hiển thị điểm số */}
+      {/* --- LỚP HIỂN THỊ (VISUAL LAYER) --- */}
+      {/* Lớp này chỉ để nhìn, không nhận sự kiện chuột/chạm (pointer-events-none) */}
+      <div className="flex items-center gap-1 pointer-events-none">
+        {[...Array(5)].map((_, i) => {
+          const fullValue = i + 1;
+          const halfValue = i + 0.5;
+          return (
+            // Thêm p-0.5 để tạo khoảng cách thị giác nhỏ nếu muốn, không ảnh hưởng vùng chạm
+            <div key={i} className="relative transition-transform p-0.5">
+                {displayRating >= fullValue ? (
+                    <RiStarFill className={`${size} text-yellow-400 drop-shadow-md`} />
+                ) : displayRating >= halfValue ? (
+                    <RiStarHalfFill className={`${size} text-yellow-400 drop-shadow-md`} />
+                ) : (
+                    <RiStarLine className={`${size} text-gray-600`} />
+                )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* --- LỚP PHỦ CẢM ỨNG TÀNG HÌNH (TOUCH OVERLAY) --- */}
+      {/* Đây là nơi duy nhất nhận sự kiện */}
       {!readonly && (
-          <span className={`ml-2 font-bold text-lg min-w-[35px] ${hoverRating > 0 ? 'text-yellow-400' : 'text-gray-500'}`}>
+        <div
+            ref={overlayRef}
+            // absolute inset-0: Phủ kín container cha
+            // z-10: Nằm đè lên trên lớp hiển thị
+            // touch-none: Chặn scroll trên mobile
+            // cursor-pointer: Hiển thị con trỏ tay trên PC
+            className="absolute inset-0 z-10 cursor-pointer touch-none"
+            
+            // Sự kiện Chuột (PC)
+            onMouseMove={(e) => handleMove(e.clientX)}
+            onMouseLeave={handleLeave}
+            onClick={(e) => handleClickEnd(e, e.clientX)}
+
+            // Sự kiện Chạm (Mobile)
+            onTouchStart={(e) => handleMove(e.touches[0].clientX)}
+            onTouchMove={(e) => handleMove(e.touches[0].clientX)}
+            onTouchEnd={(e) => handleClickEnd(e, e.changedTouches[0].clientX)}
+        ></div>
+      )}
+
+      {/* Hiển thị số điểm bên cạnh (nằm ngoài khu vực sao) */}
+      {!readonly && (
+          <span className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 font-bold text-lg min-w-[35px] ${hoverRating > 0 ? 'text-yellow-400' : 'text-gray-500'}`}>
               {displayRating > 0 ? displayRating.toFixed(1) : '0.0'}
           </span>
       )}
