@@ -4,7 +4,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import LevelBadge from '../common/LevelBadge';
 import Toast from '../common/Toast';
-// --- ĐẢM BẢO DÒNG IMPORT NÀY CÓ ĐỦ CÁC ICON SAU ---
 import { RiSendPlaneFill, RiChat1Line, RiTimeLine, RiThumbUpLine, RiThumbUpFill, RiLoader4Line, RiFlag2Line, RiCloseLine } from 'react-icons/ri';
 
 // --- ĐỔI URL BACKEND CỦA BẠN NẾU CẦN ---
@@ -21,17 +20,17 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     const [toast, setToast] = useState(null);
     const location = useLocation();
 
-    // --- CÁC STATES MỚI CHO TÍNH NĂNG BÁO CÁO ---
+    // --- CÁC STATES CHO TÍNH NĂNG BÁO CÁO ---
     const [showReportModal, setShowReportModal] = useState(false);
     const [commentToReport, setCommentToReport] = useState(null);
     const [reportReason, setReportReason] = useState('');
-    const reportModalRef = useRef(null); // Ref để phát hiện click ra ngoài modal
+    const reportModalRef = useRef(null);
 
-    // (Các hàm getAvatar, timeAgo giữ nguyên)
+    // (Các hàm helper giữ nguyên)
     const getAvatar = (path) => { if (!path) return `https://ui-avatars.com/api/?background=random`; if (path.startsWith('http')) return path; return `${BACKEND_URL}/${path}`; };
     const timeAgo = (dateString) => { const now = new Date(); const date = new Date(dateString); const seconds = Math.floor((now - date) / 1000); if (seconds < 60) return 'Vừa xong'; const minutes = Math.floor(seconds / 60); if (minutes < 60) return `${minutes} phút trước`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} giờ trước`; return date.toLocaleDateString('vi-VN'); };
 
-    // (useEffect fetchComments và Deep Linking giữ nguyên)
+    // (useEffect fetchComments giữ nguyên)
     useEffect(() => {
         const fetchComments = async () => {
             try {
@@ -45,6 +44,7 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
         if (comicSlug) fetchComments();
     }, [comicSlug, chapterName, user]);
 
+    // (useEffect Deep Linking giữ nguyên)
     useEffect(() => {
         if (!loading && comments.length > 0 && location.hash) {
             const targetId = location.hash.substring(1);
@@ -64,54 +64,29 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     const handleSubmit = async (e, parentId = null) => { e.preventDefault(); const textToSend = parentId ? replyContent : content; if (!textToSend.trim()) return; setSubmitting(true); try { const token = localStorage.getItem('user_token'); const res = await axios.post(`${BACKEND_URL}/api/comments`, { comic_slug: comicSlug, content: textToSend, parent_id: parentId, chapter_name: chapterName }, { headers: { Authorization: `Bearer ${token}` } }); setComments([res.data, ...comments]); if (parentId) { setReplyContent(''); setActiveReplyId(null); } else { setContent(''); } } catch (error) { setToast({ message: "Lỗi gửi bình luận. Vui lòng thử lại!", type: "error" }); } finally { setSubmitting(false); } };
     const handleLike = async (commentId) => { if (!user) { setToast({ message: "Vui lòng đăng nhập để thích bình luận!", type: "info" }); return; } setComments(prevComments => { return prevComments.map(cmt => { if (cmt.id === commentId) { const newIsLiked = !cmt.is_liked; return { ...cmt, is_liked: newIsLiked, like_count: newIsLiked ? cmt.like_count + 1 : cmt.like_count - 1 }; } return cmt; }); }); try { const token = localStorage.getItem('user_token'); await axios.post(`${BACKEND_URL}/api/comments/like`, { comment_id: commentId }, { headers: { Authorization: `Bearer ${token}` } }); } catch (error) { console.error("Lỗi like:", error); setToast({ message: "Lỗi kết nối. Thao tác chưa được lưu.", type: "error" }); } };
 
-    // ==========================================
-    // --- CÁC HÀM MỚI XỬ LÝ BÁO CÁO ---
-    // ==========================================
-
-    // 1. Mở modal báo cáo
+    // --- CÁC HÀM XỬ LÝ BÁO CÁO (Giữ nguyên) ---
     const openReportModal = (comment) => {
-        if (!user) {
-            setToast({ message: "Vui lòng đăng nhập để báo cáo!", type: "info" });
-            return;
-        }
-        setCommentToReport(comment);
-        setReportReason(''); // Reset lý do cũ
-        setShowReportModal(true);
+        if (!user) { setToast({ message: "Vui lòng đăng nhập để báo cáo!", type: "info" }); return; }
+        setCommentToReport(comment); setReportReason(''); setShowReportModal(true);
     };
-
-    // 2. Gửi báo cáo lên server
     const handleSendReport = async () => {
         if (!reportReason || !commentToReport) return;
         try {
             const token = localStorage.getItem('user_token');
-            // Gọi API mới đã tạo ở backend
-            await axios.post(`${BACKEND_URL}/api/reports/comments`, {
-                comment_id: commentToReport.id,
-                reason: reportReason
-            }, { headers: { Authorization: `Bearer ${token}` } });
-
-            setToast({ message: "Đã gửi báo cáo thành công. Cảm ơn bạn!", type: "success" });
-            setShowReportModal(false);
-        } catch (error) {
-            setToast({ message: error.response?.data?.message || "Gửi báo cáo thất bại.", type: "error" });
-        }
+            await axios.post(`${BACKEND_URL}/api/reports/comments`, { comment_id: commentToReport.id, reason: reportReason }, { headers: { Authorization: `Bearer ${token}` } });
+            setToast({ message: "Đã gửi báo cáo thành công. Cảm ơn bạn!", type: "success" }); setShowReportModal(false);
+        } catch (error) { setToast({ message: error.response?.data?.message || "Gửi báo cáo thất bại.", type: "error" }); }
     };
-
-    // 3. Đóng modal khi click ra ngoài
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (reportModalRef.current && !reportModalRef.current.contains(event.target)) {
-                setShowReportModal(false);
-            }
-        };
-        if (showReportModal) document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        const handleClickOutside = (event) => { if (reportModalRef.current && !reportModalRef.current.contains(event.target)) { setShowReportModal(false); } };
+        if (showReportModal) document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [showReportModal]);
 
 
-    // Component hiển thị một bình luận đơn lẻ
+    // ==========================================
+    // COMPONENT HIỂN THỊ BÌNH LUẬN ĐƠN LẺ
+    // ==========================================
     const CommentItemSingle = ({ cmt, isReply = false }) => {
-        // Kiểm tra xem có phải comment của chính mình không
         const isMyComment = user && user.id === cmt.user_id;
 
         return (
@@ -120,30 +95,42 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
                     <img src={getAvatar(cmt.avatar)} alt={cmt.full_name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 group/content">
-                    <div className="bg-[#1f1f3a] p-3 rounded-2xl border border-white/5 inline-block min-w-[200px] relative pr-8">
+                    {/* Đã xóa class 'pr-8' ở div này */}
+                    <div className="bg-[#1f1f3a] p-3 rounded-2xl border border-white/5 inline-block min-w-[200px] relative">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="font-bold text-white text-xs md:text-sm">{cmt.full_name}</span>
                             <div className="scale-75 origin-left"><LevelBadge exp={cmt.exp} rankStyle={cmt.rank_style} role={cmt.role} /></div>
                         </div>
                         <p className="text-gray-300 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">{cmt.content}</p>
                         
-                        {/* --- NÚT BÁO CÁO (Chỉ hiện khi đã đăng nhập và không phải comment của mình) --- */}
+                        {/* --- NÚT BÁO CÁO CŨ (ĐÃ XÓA TẠI ĐÂY) --- */}
+                    </div>
+                    
+                    {/* --- KHU VỰC ACTIONS (Ngang hàng) --- */}
+                    <div className="mt-1 flex items-center gap-4 text-[10px] md:text-xs text-gray-500 font-bold ml-2">
+                        {/* Thời gian */}
+                        <span className="flex items-center gap-1 font-normal"><RiTimeLine /> {timeAgo(cmt.created_at)}</span>
+                        
+                        {/* Nút Like */}
+                        <button onClick={() => handleLike(cmt.id)} className={`flex items-center gap-1 hover:text-white transition-colors ${cmt.is_liked ? 'text-red-500' : ''}`}>{cmt.is_liked ? <RiThumbUpFill /> : <RiThumbUpLine />} {cmt.like_count > 0 && cmt.like_count} Thích</button>
+                        
+                        {/* Nút Trả lời (Chỉ hiện ở comment gốc) */}
+                        {!isReply && (<button onClick={() => setActiveReplyId(activeReplyId === cmt.id ? null : cmt.id)} className="hover:text-white transition-colors">Trả lời</button>)}
+
+                        {/* --- NÚT BÁO CÁO MỚI (Được thêm vào đây) --- */}
+                        {/* Chỉ hiện nếu đã đăng nhập VÀ không phải là comment của chính mình */}
                         {!isMyComment && user && (
                             <button
                                 onClick={() => openReportModal(cmt)}
-                                className="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover/content:opacity-100 transition-opacity p-1"
+                                className="flex items-center gap-1 hover:text-red-500 transition-colors"
                                 title="Báo cáo bình luận này"
                             >
-                                <RiFlag2Line size={14} />
+                                <RiFlag2Line /> Báo cáo
                             </button>
                         )}
+                    </div>
 
-                    </div>
-                    <div className="mt-1 flex items-center gap-4 text-[10px] md:text-xs text-gray-500 font-bold ml-2">
-                        <span className="flex items-center gap-1 font-normal"><RiTimeLine /> {timeAgo(cmt.created_at)}</span>
-                        <button onClick={() => handleLike(cmt.id)} className={`flex items-center gap-1 hover:text-white transition-colors ${cmt.is_liked ? 'text-red-500' : ''}`}>{cmt.is_liked ? <RiThumbUpFill /> : <RiThumbUpLine />} {cmt.like_count > 0 && cmt.like_count} Thích</button>
-                        {!isReply && (<button onClick={() => setActiveReplyId(activeReplyId === cmt.id ? null : cmt.id)} className="hover:text-white transition-colors">Trả lời</button>)}
-                    </div>
+                    {/* Form trả lời */}
                     {activeReplyId === cmt.id && user && !isReply && (
                         <form onSubmit={(e) => handleSubmit(e, cmt.id)} className="mt-3 flex gap-3 animate-fade-in-down">
                             <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 flex-shrink-0 mt-1"><img src={getAvatar(user.avatar)} alt="Me" className="w-full h-full object-cover" /></div>
@@ -170,6 +157,7 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
         ));
     };
 
+    // (Phần render chính và Modal giữ nguyên)
     return (
         <div className="bg-[#1a1a2e] rounded-xl p-4 md:p-6 border border-white/5 shadow-sm mt-8 relative">
             <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6 uppercase tracking-wider border-l-4 border-primary pl-3"><RiChat1Line /> {chapterName ? `Bình Luận Chương ${chapterName}` : 'Bình Luận Bộ Truyện'} <span className="text-gray-500 text-sm ml-1">({comments.length})</span></h3>
@@ -190,34 +178,15 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
             </div>
              {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-             {/* ========================================== */}
-             {/* --- MODAL BÁO CÁO BÌNH LUẬN MỚI --- */}
-             {/* ========================================== */}
+             {/* MODAL BÁO CÁO */}
              {showReportModal && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm animate-fade-in">
                     <div ref={reportModalRef} className="bg-[#1a1a2e] border border-white/10 rounded-xl p-6 w-full max-w-sm relative shadow-2xl animate-scale-up">
                         <button onClick={() => setShowReportModal(false)} className="absolute top-3 right-3 text-gray-500 hover:text-white p-1"><RiCloseLine size={24} /></button>
                         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><RiFlag2Line className="text-red-500" /> Báo cáo bình luận</h3>
-                        
-                        {/* Hiển thị nội dung bình luận bị báo cáo */}
-                        <div className="mb-4">
-                            <p className="text-xs text-gray-500 mb-1">Bình luận của <span className="font-bold">{commentToReport?.full_name}</span>:</p>
-                            <p className="text-gray-300 text-sm italic bg-[#252538] p-2 rounded border border-white/5 line-clamp-3">"{commentToReport?.content}"</p>
-                        </div>
-                        
-                        <div className="space-y-2 mb-6">
-                            <p className="text-sm font-bold text-white mb-2">Vui lòng chọn lý do:</p>
-                            {/* Danh sách các lý do */}
-                            {['Spam / Quảng cáo', 'Ngôn từ đả kích / Xúc phạm', 'Nội dung khiêu dâm / 18+', 'Spoil nội dung truyện', 'Thông tin sai lệch', 'Khác'].map((reason) => (
-                                <label key={reason} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${reportReason === reason ? 'bg-red-500/10 border-red-500/50' : 'bg-[#252538] border-transparent hover:border-white/10 hover:bg-white/5'}`}>
-                                    <input type="radio" name="reportReason" value={reason} checked={reportReason === reason} onChange={(e) => setReportReason(e.target.value)} className="accent-red-500 w-4 h-4" />
-                                    <span className="text-sm text-gray-300">{reason}</span>
-                                </label>
-                            ))}
-                        </div>
-                        <button onClick={handleSendReport} disabled={!reportReason} className={`w-full py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${reportReason ? 'bg-red-600 text-white shadow-lg hover:bg-red-700 shadow-red-900/20' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}>
-                            <RiSendPlaneFill /> Gửi Báo Cáo
-                        </button>
+                        <div className="mb-4"><p className="text-xs text-gray-500 mb-1">Bình luận của <span className="font-bold">{commentToReport?.full_name}</span>:</p><p className="text-gray-300 text-sm italic bg-[#252538] p-2 rounded border border-white/5 line-clamp-3">"{commentToReport?.content}"</p></div>
+                        <div className="space-y-2 mb-6"><p className="text-sm font-bold text-white mb-2">Vui lòng chọn lý do:</p>{['Spam / Quảng cáo', 'Ngôn từ đả kích / Xúc phạm', 'Nội dung khiêu dâm / 18+', 'Spoil nội dung truyện', 'Thông tin sai lệch', 'Khác'].map((reason) => (<label key={reason} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${reportReason === reason ? 'bg-red-500/10 border-red-500/50' : 'bg-[#252538] border-transparent hover:border-white/10 hover:bg-white/5'}`}><input type="radio" name="reportReason" value={reason} checked={reportReason === reason} onChange={(e) => setReportReason(e.target.value)} className="accent-red-500 w-4 h-4" /><span className="text-sm text-gray-300">{reason}</span></label>))}</div>
+                        <button onClick={handleSendReport} disabled={!reportReason} className={`w-full py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${reportReason ? 'bg-red-600 text-white shadow-lg hover:bg-red-700 shadow-red-900/20' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}><RiSendPlaneFill /> Gửi Báo Cáo</button>
                     </div>
                 </div>
             )}
