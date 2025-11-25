@@ -303,7 +303,7 @@ const ComicDetailPage = () => {
                         <section className="mt-4 animate-fade-in-up block lg:hidden">
                             <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#1a1a2e] rounded-t-2xl">
                                 <h2 className="text-lg font-bold text-white flex items-center gap-2"><RiEyeFill className="text-primary" /> GỢI Ý CHO BẠN</h2>
-                                <Link to="/danh-sach/truyen-moi" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine /></Link>
+                                <Link to="/danh-sach" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine /></Link>
                             </div>
                             <div className="bg-[#1a1a2e] p-4 rounded-b-2xl border border-white/5 border-t-0">
                                 {loadingSuggestions ? renderSuggestionSkeleton() : (

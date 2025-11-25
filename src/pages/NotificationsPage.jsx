@@ -196,7 +196,7 @@ const NotificationsPage = () => {
                         <div className="bg-[#1a1a2e] rounded-2xl border border-white/5 shadow-xl overflow-hidden sticky top-24 animate-fade-in-right">
                             <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                 <h2 className="text-lg font-bold text-white flex items-center gap-2"><RiBookOpenLine className="text-green-500"/> Có Thể Bạn Thích</h2>
-                                <Link to="/danh-sach/hoan-thanh" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine/></Link>
+                                <Link to="/danh-sach" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine/></Link>
                             </div>
                             <div className="p-4">
                                 {loadingRecs ? (
