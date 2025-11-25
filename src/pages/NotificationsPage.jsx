@@ -8,8 +8,8 @@ import {
 
 // --- IMPORT HEADER & FOOTER ---
 // Hãy đảm bảo đường dẫn này đúng với dự án của bạn
-import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
+import Header from '../components/layouts/Header';
+import Footer from '../components/layouts/Footer';
 
 // ĐỔI URL NẾU CẦN
 const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
