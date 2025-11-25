@@ -63,29 +63,36 @@ const CommentSection = ({ comicSlug, chapterName = null }) => {
     useEffect(() => {
         // Chỉ chạy khi đã tải xong comments và trên URL có hash (ví dụ #comment-123)
         if (!loading && comments.length > 0 && location.hash) {
-            // Lấy ID từ hash (bỏ dấu # ở đầu)
             const targetId = location.hash.substring(1);
-            const targetElement = document.getElementById(targetId);
 
-            if (targetElement) {
-                // Delay nhẹ 500ms để đảm bảo DOM đã ổn định sau khi render
-                setTimeout(() => {
+            // --- THAY ĐỔI QUAN TRỌNG Ở ĐÂY ---
+            // Chúng ta tạo một timeout để chờ React render xong DOM thật
+            const timer = setTimeout(() => {
+                // LÚC NÀY mới đi tìm element trong DOM
+                const targetElement = document.getElementById(targetId);
+
+                if (targetElement) {
+                    // Nếu tìm thấy thì mới cuộn
                     targetElement.scrollIntoView({ 
-                        behavior: 'smooth', // Cuộn mượt
-                        block: 'center'     // Đưa phần tử vào giữa màn hình
+                        behavior: 'smooth', 
+                        block: 'center'
                     });
                     
-                    // Thêm hiệu ứng highlight nhẹ để người dùng dễ nhận biết
+                    // Hiệu ứng highlight
                     targetElement.classList.add('bg-white/10');
-                    // Sau 2 giây thì tắt highlight
                     setTimeout(() => {
                         targetElement.classList.remove('bg-white/10');
                     }, 2000);
+                } else {
+                    // (Tuỳ chọn) Log để debug nếu vẫn không tìm thấy
+                    // console.warn(`Không tìm thấy bình luận có ID: ${targetId}`);
+                }
+            }, 800); // Tăng thời gian chờ lên 800ms cho chắc chắn (mạng chậm hoặc máy yếu)
 
-                }, 500);
-            }
+            // Cleanup timeout để tránh lỗi nếu người dùng chuyển trang nhanh
+            return () => clearTimeout(timer);
+            // -------------------------------------
         }
-    // Chạy lại effect này khi danh sách comment, trạng thái loading hoặc hash trên URL thay đổi
     }, [comments, loading, location.hash]);
     // -----------------------------------------------------
 
