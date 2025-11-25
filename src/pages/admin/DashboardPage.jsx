@@ -21,6 +21,12 @@ const DashboardPage = () => {
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
 
+    // --- STATE PHÂN TRANG (MỚI THÊM) ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const itemsPerPage = 10; // Số lượng item mỗi trang
+    // -----------------------------------
+
     // --- Modals ---
     const [showBanModal, setShowBanModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -37,7 +43,7 @@ const DashboardPage = () => {
     const [externalResults, setExternalResults] = useState([]);
     const [searchingExternal, setSearchingExternal] = useState(false);
 
-    // --- FETCH DATA ---
+    // --- FETCH DATA (ĐÃ CẬP NHẬT CHO PHÂN TRANG) ---
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -45,14 +51,21 @@ const DashboardPage = () => {
             const headers = { Authorization: `Bearer ${token}` };
             let res;
 
-            if (activeTab === 'users') res = await axios.get('/api/user/admin/users', { headers });
+            if (activeTab === 'users') {
+                // Gửi kèm params page và limit cho tab users
+                res = await axios.get(`/api/user/admin/users?page=${currentPage}&limit=${itemsPerPage}`, { headers });
+                // Xử lý cấu trúc dữ liệu mới
+                setData(res.data.data);
+                setTotalPages(res.data.pagination.totalPages);
+            }
             else if (activeTab === 'reports') res = await axios.get('/api/reports/admin/all', { headers });
             else if (activeTab === 'comments') res = await axios.get('/api/comments/admin/all', { headers });
             else if (activeTab === 'quests') res = await axios.get('/api/quests/admin/all', { headers });
             else if (activeTab === 'comics') res = await axios.get('/api/user/admin/comics', { headers });
 
             if (activeTab === 'comics') setManagedComics(res.data);
-            else if (activeTab !== 'dashboard') setData(res.data);
+            // Nếu không phải users và comics thì data vẫn là mảng phẳng như cũ
+            else if (activeTab !== 'dashboard' && activeTab !== 'users') setData(res.data);
 
         } catch (error) {
             console.error("Lỗi load data:", error);
@@ -67,14 +80,22 @@ const DashboardPage = () => {
         setSearchTerm('');
         setExternalResults([]);
         setExternalSearch('');
-    }, [activeTab]);
+        // Reset về trang 1 nếu chuyển sang tab khác (không phải users)
+        if (activeTab !== 'users') setCurrentPage(1);
+    // Thêm currentPage vào dependency để gọi lại API khi đổi trang
+    }, [activeTab, currentPage]);
 
-    // --- LOGIC LỌC ---
+    // --- LOGIC LỌC (Client-side - Chỉ áp dụng cho các tab chưa phân trang server) ---
     const filteredData = useMemo(() => {
         if (!data || activeTab === 'dashboard') return [];
+        // Nếu là users, data đã là danh sách của trang hiện tại, không cần lọc client-side
+        if (activeTab === 'users') return data;
+
         const lowerSearch = searchTerm.toLowerCase();
 
         return data.filter(item => {
+            // Logic lọc cho 'users' ở đây là thừa khi đã phân trang server, 
+            // nhưng để lại tạm cũng không sao vì data user trả về đã được giới hạn.
             if (activeTab === 'users') {
                 const matchSearch = item.username.toLowerCase().includes(lowerSearch) || item.email.toLowerCase().includes(lowerSearch);
                 const matchRole = filterRole === 'all' || item.role === filterRole;
@@ -94,7 +115,7 @@ const DashboardPage = () => {
         });
     }, [data, searchTerm, filterRole, filterStatus, activeTab]);
 
-    // --- ACTIONS ---
+    // --- ACTIONS (Giữ nguyên) ---
     const handleDeleteUser = async (id) => { if (!window.confirm('Xóa user?')) return; try { const token = localStorage.getItem('user_token'); await axios.delete(`/api/user/admin/users/${id}`, { headers: { Authorization: `Bearer ${token}` } }); setData(prev => prev.filter(u => u.id !== id)); } catch (e) { alert('Lỗi xóa'); } };
     const handleWarn = async (id) => { try { const token = localStorage.getItem('user_token'); await axios.post(`/api/user/admin/users/${id}/warn`, {}, { headers: { Authorization: `Bearer ${token}` } }); alert('Đã cảnh báo'); fetchData(); } catch (e) { alert('Lỗi'); } };
     const handleUnban = async (id) => { if (!window.confirm('Mở khóa?')) return; try { const token = localStorage.getItem('user_token'); await axios.post(`/api/user/admin/users/${id}/unban`, {}, { headers: { Authorization: `Bearer ${token}` } }); alert('Đã mở khóa!'); fetchData(); } catch (e) { alert('Lỗi'); } }
@@ -351,6 +372,17 @@ const DashboardPage = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* --- UI PHÂN TRANG (Chỉ hiện cho tab Users và khi có hơn 1 trang) --- */}
+                        {activeTab === 'users' && totalPages > 1 && (
+                            <div className="flex justify-between items-center p-4 bg-[#151525] border-t border-white/5">
+                                <div className="text-sm text-gray-500">Trang <span className="font-bold text-white">{currentPage}</span> / {totalPages}</div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className={`px-3 py-1.5 rounded border border-white/10 text-sm font-bold transition-colors ${currentPage === 1 ? 'text-gray-600 cursor-not-allowed bg-white/5' : 'text-white hover:bg-white/10 hover:border-white/20'}`}>Trước</button>
+                                    <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className={`px-3 py-1.5 rounded border border-white/10 text-sm font-bold transition-colors ${currentPage === totalPages ? 'text-gray-600 cursor-not-allowed bg-white/5' : 'text-white hover:bg-white/10 hover:border-white/20'}`}>Sau</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
