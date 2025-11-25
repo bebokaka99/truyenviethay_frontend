@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import LevelBadge from '../common/LevelBadge';
 import Toast from '../common/Toast';
-// --- THÊM CÁC ICON MỚI: RiFlag2Line, RiCloseLine ---
+// --- ĐẢM BẢO DÒNG IMPORT NÀY CÓ ĐỦ CÁC ICON SAU ---
 import { RiSendPlaneFill, RiChat1Line, RiTimeLine, RiThumbUpLine, RiThumbUpFill, RiLoader4Line, RiFlag2Line, RiCloseLine } from 'react-icons/ri';
 
 // --- ĐỔI URL BACKEND CỦA BẠN NẾU CẦN ---
