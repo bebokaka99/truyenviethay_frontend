@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,19 +6,21 @@ import Header from '../components/layouts/Header';
 import Footer from '../components/layouts/Footer';
 import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection';
+// --- IMPORT COMPONENT GỢI Ý MỚI ---
+import RecommendedComicsSection from '../components/comic/RecommendedComicsSection';
+// ----------------------------------
 import StarRating from '../components/common/StarRating';
 import Toast from '../components/common/Toast'
 import SEO from '../components/common/SEO';
 import {
     RiBookOpenLine, RiBookmarkLine, RiUser3Line, RiTimeLine,
     RiFileList2Line, RiListCheck, RiSortDesc, RiSortAsc,
-    RiEyeFill, RiBookmarkFill, RiPlayCircleLine,
-    RiFlag2Line, RiCloseLine, RiCheckLine, RiArrowRightSLine
+    RiBookmarkFill, RiPlayCircleLine,
+    RiFlag2Line, RiCloseLine, RiCheckLine
 } from 'react-icons/ri';
 
 // URL Backend
 const BACKEND_URL = 'https://truyenviethay-backend.onrender.com';
-const COMIC_IMAGE_DOMAIN = 'https://img.otruyenapi.com/uploads/comics/';
 
 const ComicDetailPage = () => {
     const { slug } = useParams();
@@ -26,12 +28,11 @@ const ComicDetailPage = () => {
 
     const [comic, setComic] = useState(null);
     const [chapters, setChapters] = useState([]);
-    const [suggestedComics, setSuggestedComics] = useState([]);
+    // ĐÃ XÓA STATE VÀ LOGIC GỢI Ý Ở ĐÂY
     const [loading, setLoading] = useState(true);
     const [domainAnh, setDomainAnh] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
     const [sortDesc, setSortDesc] = useState(true);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(true);
 
     const [latestChapterApi, setLatestChapterApi] = useState('Mới');
     const [isFollowed, setIsFollowed] = useState(false);
@@ -50,7 +51,7 @@ const ComicDetailPage = () => {
         setToast({ message, type });
     };
 
-    // 1. Fetch Data
+    // 1. Fetch Data (Chỉ còn fetch chi tiết truyện)
     useEffect(() => {
         const fetchComicDetail = async () => {
             try {
@@ -90,35 +91,7 @@ const ComicDetailPage = () => {
         window.scrollTo(0, 0);
     }, [slug, user]);
 
-
-    // --- FETCH GỢI Ý TRUYỆN ---
-    const fetchRandomSuggestions = useCallback(async () => {
-        setLoadingSuggestions(true);
-        try {
-            const randomPage = Math.floor(Math.random() * 10) + 1;
-            const res = await axios.get(`https://otruyenapi.com/v1/api/danh-sach/truyen-moi?page=${randomPage}`);
-            const items = res.data.data.items;
-            const filteredItems = items.filter(item => item.slug !== slug);
-            // Lấy 6 truyện cho gọn sidebar
-            const shuffled = filteredItems.sort(() => 0.5 - Math.random()).slice(0, 6);
-
-            const detailedSuggestions = await Promise.all(shuffled.map(async (item) => {
-                try {
-                    const detailRes = await axios.get(`https://otruyenapi.com/v1/api/truyen-tranh/${item.slug}`);
-                    const comicData = detailRes.data.data.item;
-                    return {
-                        _id: comicData._id, slug: comicData.slug, name: comicData.name, thumb_url: comicData.thumb_url,
-                        latest_chapter: comicData.chapters?.[0]?.server_data?.[0]?.chapter_name || 'Full',
-                        category: comicData.category || [], status: comicData.status
-                    };
-                } catch (err) { return null; }
-            }));
-            setSuggestedComics(detailedSuggestions.filter(item => item !== null));
-        } catch (error) { console.error("Lỗi gợi ý:", error); setSuggestedComics([]); } finally { setLoadingSuggestions(false); }
-    }, [slug]);
-
-    useEffect(() => { fetchRandomSuggestions(); }, [fetchRandomSuggestions]);
-
+    // ĐÃ XÓA HÀM fetchRandomSuggestions VÀ useEffect CỦA NÓ Ở ĐÂY
 
     // --- HANDLERS ---
     const handleToggleFollow = async () => {
@@ -172,46 +145,7 @@ const ComicDetailPage = () => {
 
     const seoData = comic ? { title: comic.name, description: comic.content?.replace(/<[^>]+>/g, '').substring(0, 160) + '...', image: coverImage, url: `/truyen-tranh/${slug}` } : null;
 
-    // --- HELPER RENDER GỢI Ý (Dùng chung cho cả Mobile và PC) ---
-    // Thiết kế dạng thẻ ngang (horizontal card) để phù hợp sidebar và mobile 1 cột
-    const renderSuggestionItem = (item) => (
-        <Link key={item._id} to={`/truyen-tranh/${item.slug}`} className="flex gap-3 group rounded-xl hover:bg-white/5 p-2 transition-all border border-transparent hover:border-white/10 bg-[#1f1f3a]">
-            <div className="w-20 h-28 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 group-hover:border-primary/50 transition-colors relative shadow-sm">
-                <img src={`${COMIC_IMAGE_DOMAIN}${item.thumb_url}`} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                {item.status === 'completed' && <span className="absolute bottom-0 right-0 bg-green-500 text-[8px] font-bold text-black px-1 rounded-tl-md">FULL</span>}
-            </div>
-            <div className="flex-1 min-w-0 py-1 flex flex-col justify-between">
-                <div>
-                    <h3 className="text-sm font-bold text-white truncate-2-lines group-hover:text-primary transition-colors leading-tight">{item.name}</h3>
-                    <p className="text-xs text-green-500 font-bold mt-1 truncate">{item.latest_chapter ? (item.latest_chapter.includes('chapter') ? item.latest_chapter : `Chương ${item.latest_chapter}`) : 'Đang cập nhật'}</p>
-                </div>
-                <div className="flex gap-1 mt-2 flex-wrap">
-                    {item.category.slice(0, 2).map(cat => (
-                        <span key={cat.id} className="text-[9px] bg-white/10 text-gray-400 px-1.5 py-0.5 rounded truncate border border-white/5">{cat.name}</span>
-                    ))}
-                </div>
-            </div>
-        </Link>
-    );
-
-    const renderSuggestionSkeleton = () => (
-        <div className="flex flex-col gap-4">
-            {Array(5).fill(0).map((_, i) => (
-                <div key={i} className="flex gap-3 p-2 bg-white/5 rounded-xl animate-pulse">
-                    <div className="w-20 h-28 bg-white/10 rounded-lg flex-shrink-0"></div>
-                    <div className="flex-1 flex flex-col gap-2 py-1">
-                        <div className="h-4 bg-white/10 rounded w-3/4"></div>
-                        <div className="h-3 bg-white/10 rounded w-1/2"></div>
-                        <div className="flex gap-1 mt-auto">
-                            <div className="h-3 bg-white/10 rounded w-10"></div>
-                            <div className="h-3 bg-white/10 rounded w-10"></div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-
+    // ĐÃ XÓA CÁC HÀM HELPER RENDER GỢI Ý Ở ĐÂY
 
     // --- SKELETON LOADING UI ---
     if (loading) {
@@ -300,37 +234,17 @@ const ComicDetailPage = () => {
                         <section><CommentSection comicSlug={slug} /></section>
 
                         {/* --- GỢI Ý TRUYỆN (MOBILE ONLY) --- */}
-                        <section className="mt-4 animate-fade-in-up block lg:hidden">
-                            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#1a1a2e] rounded-t-2xl">
-                                <h2 className="text-lg font-bold text-white flex items-center gap-2"><RiEyeFill className="text-primary" /> GỢI Ý CHO BẠN</h2>
-                                <Link to="/danh-sach" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine /></Link>
-                            </div>
-                            <div className="bg-[#1a1a2e] p-4 rounded-b-2xl border border-white/5 border-t-0">
-                                {loadingSuggestions ? renderSuggestionSkeleton() : (
-                                    <div className="flex flex-col gap-4">
-                                        {suggestedComics.map(item => renderSuggestionItem(item))}
-                                    </div>
-                                )}
-                                {suggestedComics.length === 0 && !loadingSuggestions && <p className="text-center text-gray-500 text-xs py-6">Không có gợi ý nào.</p>}
-                            </div>
+                        <section className="mt-4 block lg:hidden">
+                             {/* SỬ DỤNG COMPONENT MỚI TẠI ĐÂY */}
+                            <RecommendedComicsSection currentSlug={slug} limit={6} />
                         </section>
                     </div>
 
                     {/* CỘT SIDEBAR (PC ONLY) */}
                     <div className="hidden lg:block">
-                        <div className="bg-[#1a1a2e] rounded-2xl border border-white/5 sticky top-24 overflow-hidden animate-fade-in-right">
-                             <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                <h2 className="text-lg font-bold text-white flex items-center gap-2"><RiEyeFill className="text-primary"/> GỢI Ý HÔM NAY</h2>
-                                <Link to="/danh-sach" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">Xem thêm <RiArrowRightSLine/></Link>
-                            </div>
-                            <div className="p-4">
-                                {loadingSuggestions ? renderSuggestionSkeleton() : (
-                                    <div className="flex flex-col gap-4">
-                                        {suggestedComics.map(item => renderSuggestionItem(item))}
-                                    </div>
-                                )}
-                                {suggestedComics.length === 0 && !loadingSuggestions && <p className="text-center text-gray-500 text-xs py-6">Không có gợi ý nào.</p>}
-                            </div>
+                        <div className="sticky top-24">
+                             {/* SỬ DỤNG COMPONENT MỚI TẠI ĐÂY */}
+                            <RecommendedComicsSection currentSlug={slug} limit={6} />
                         </div>
                     </div>
                 </div>
