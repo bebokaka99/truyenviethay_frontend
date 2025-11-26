@@ -15,7 +15,7 @@ import useReadingProgress from '../hooks/useReadingProgress';
 import {
     RiArrowLeftSLine, RiArrowRightSLine, RiListCheck,
     RiErrorWarningLine, RiHome4Line, RiHeart3Line, RiHeart3Fill,
-    RiFlag2Line, RiCloseLine, RiCheckLine, RiArrowUpLine, RiChat3Line, RiBookOpenLine
+    RiFlag2Line, RiCloseLine, RiCheckLine, RiArrowUpLine, RiChat3Line
 } from 'react-icons/ri';
 
 // --- COMPONENT ẢNH LAZY LOAD (Giữ nguyên) ---
@@ -158,44 +158,49 @@ const ChapterPage = () => {
                             {images.map((img, index) => (<LazyChapterImage key={index} src={img.src} alt={`Trang ${index + 1}`} />))}
                         </div>
 
-                        {/* --- THANH ĐIỀU HƯỚNG CUỐI CHƯƠNG (MỚI) --- */}
+                        {/* --- THANH ĐIỀU HƯỚNG CUỐI CHƯƠNG (ĐÃ SỬA) --- */}
                         <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col items-center gap-6 border-t border-white/5 mt-8">
                             <h3 className="text-xl font-bold text-white">Bạn đã đọc hết chương {chapterName}</h3>
                             
-                            {/* Điều hướng chính */}
+                            {/* Điều hướng chính - Chỉ còn 2 nút */}
                             <div className="flex items-center gap-4 w-full max-w-md">
-                                <Link to={prevChapter ? `/doc-truyen/${slug}/${prevChapter}` : '#'} className={`flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border ${prevChapter ? 'bg-[#252538] hover:bg-white/10 text-white border-white/10' : 'bg-gray-800 text-gray-500 border-transparent cursor-not-allowed'}`}>
-                                    <RiArrowLeftSLine size={20} /> Chương Trước
-                                </Link>
-                                <Link to={nextChapter ? `/doc-truyen/${slug}/${nextChapter}` : '#'} className={`flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border ${nextChapter ? 'bg-primary hover:bg-blue-600 text-white border-primary shadow-lg shadow-blue-900/20' : 'bg-gray-800 text-gray-500 border-transparent cursor-not-allowed'}`}>
-                                    Chương Sau <RiArrowRightSLine size={20} />
-                                </Link>
-                            </div>
+                                {/* Nút Chương Trước */}
+                                {prevChapter ? (
+                                    <Link to={`/doc-truyen/${slug}/${prevChapter}`} className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-[#252538] hover:bg-white/10 text-white border-white/10">
+                                        <RiArrowLeftSLine size={20} /> Chương Trước
+                                    </Link>
+                                ) : (
+                                    // Trạng thái disabled nếu không có chương trước
+                                    <button disabled className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-gray-800/50 text-gray-500 border-transparent cursor-not-allowed">
+                                        <RiErrorWarningLine size={20} /> Đây là chương đầu rồi
+                                    </button>
+                                )}
 
-                            {/* Các nút chức năng phụ */}
-                            <div className="flex items-center gap-4">
-                                <button onClick={handleToggleFollow} className={`px-6 py-2 rounded-full font-bold flex items-center gap-2 transition-colors border ${isFollowed ? 'bg-red-500/10 text-red-500 border-red-500' : 'bg-[#252538] hover:bg-white/10 text-gray-300 border-white/10'}`}>
-                                    {isFollowed ? <RiHeart3Fill /> : <RiHeart3Line />} {isFollowed ? 'Đang Theo Dõi' : 'Theo Dõi'}
-                                </button>
-                                <Link to={`/truyen-tranh/${slug}`} className="px-6 py-2 rounded-full font-bold flex items-center gap-2 transition-colors bg-[#252538] hover:bg-white/10 text-gray-300 border border-white/10">
-                                    <RiBookOpenLine /> Về Trang Truyện
-                                </Link>
-                                <button onClick={() => setShowReportModal(true)} className="px-6 py-2 rounded-full font-bold flex items-center gap-2 transition-colors bg-[#252538] hover:bg-white/10 text-gray-300 border border-white/10 hover:text-yellow-500 hover:border-yellow-500">
-                                    <RiFlag2Line /> Báo Lỗi
-                                </button>
+                                {/* Nút Chương Sau */}
+                                {nextChapter ? (
+                                    <Link to={`/doc-truyen/${slug}/${nextChapter}`} className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-primary hover:bg-blue-600 text-white border-primary shadow-lg shadow-blue-900/20">
+                                        Chương Sau <RiArrowRightSLine size={20} />
+                                    </Link>
+                                ) : (
+                                    // Trạng thái disabled nếu không có chương sau
+                                    <button disabled className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-gray-800/50 text-gray-500 border-transparent cursor-not-allowed">
+                                        Đây là chương mới nhất rồi vui lòng đợi chương tiếp theo <RiCheckLine size={20} />
+                                    </button>
+                                )}
                             </div>
-                        </div>
-
-                        {/* --- KHU VỰC GỢI Ý TRUYỆN (MỚI) --- */}
-                        <div className="max-w-4xl mx-auto px-4 mt-8 pb-8 border-t border-white/5 pt-8">
-                             {/* Truyền currentSlug để tránh gợi ý lại truyện đang đọc */}
-                            <RecommendedComicsSection currentSlug={slug} limit={6} />
+                            {/* Đã xóa các nút chức năng phụ ở đây */}
                         </div>
 
                         {/* --- KHU VỰC BÌNH LUẬN --- */}
-                        <div ref={commentSectionRef} className="max-w-4xl mx-auto px-4 mt-8 pb-24 border-t border-white/5 pt-8">
+                        <div ref={commentSectionRef} className="max-w-4xl mx-auto px-4 mt-8 pb-16 border-t border-white/5 pt-8">
                             <div className="flex items-center gap-2 text-white font-bold text-lg mb-6"><RiChat3Line className="text-primary" /> Bình Luận Về Chương Này</div>
                             <CommentSection comicSlug={slug} chapterName={chapterName} />
+                        </div>
+
+                        {/* --- KHU VỰC GỢI Ý TRUYỆN (ĐÃ DI CHUYỂN XUỐNG CUỐI) --- */}
+                        <div className="max-w-4xl mx-auto px-4 pb-8 border-t border-white/5 pt-8">
+                             {/* Truyền currentSlug để tránh gợi ý lại truyện đang đọc */}
+                            <RecommendedComicsSection currentSlug={slug} limit={6} />
                         </div>
                     </>
                 )}
