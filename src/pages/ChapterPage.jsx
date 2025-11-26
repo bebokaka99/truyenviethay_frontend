@@ -172,7 +172,7 @@ const ChapterPage = () => {
                                 ) : (
                                     // Trạng thái disabled nếu không có chương trước
                                     <button disabled className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-gray-800/50 text-gray-500 border-transparent cursor-not-allowed">
-                                        <RiErrorWarningLine size={20} /> Đây là chương đầu rồi
+                                        <RiErrorWarningLine size={20} /> Đây là chương đầu
                                     </button>
                                 )}
 
@@ -184,7 +184,7 @@ const ChapterPage = () => {
                                 ) : (
                                     // Trạng thái disabled nếu không có chương sau
                                     <button disabled className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-gray-800/50 text-gray-500 border-transparent cursor-not-allowed">
-                                        Đây là chương mới nhất rồi vui lòng đợi chương tiếp theo <RiCheckLine size={20} />
+                                        Chương mới nhất rồi <RiCheckLine size={20} />
                                     </button>
                                 )}
                             </div>
