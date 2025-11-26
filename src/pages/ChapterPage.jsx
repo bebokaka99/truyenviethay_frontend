@@ -6,9 +6,7 @@ import Header from '../components/layouts/Header';
 import Footer from '../components/layouts/Footer';
 import LoginModal from '../components/common/LoginModal';
 import CommentSection from '../components/comic/CommentSection';
-// --- IMPORT COMPONENT GỢI Ý ---
 import RecommendedComicsSection from '../components/comic/RecommendedComicsSection';
-// ------------------------------
 import Toast from '../components/common/Toast';
 import SEO from '../components/common/SEO';
 import useReadingProgress from '../hooks/useReadingProgress';
@@ -109,6 +107,24 @@ const ChapterPage = () => {
 
     const handleSelectChapter = (e) => { const selectedChap = e.target.value; if (selectedChap) navigate(`/doc-truyen/${slug}/${selectedChap}`); };
 
+    // --- CÁC HÀM XỬ LÝ ĐIỀU HƯỚNG MỚI (CÓ TOAST) ---
+    const handlePrevChapter = () => {
+        if (prevChapter) {
+            navigate(`/doc-truyen/${slug}/${prevChapter}`);
+        } else {
+            showToast("Đây là chương đầu tiên của truyện.", "info");
+        }
+    };
+
+    const handleNextChapter = () => {
+        if (nextChapter) {
+            navigate(`/doc-truyen/${slug}/${nextChapter}`);
+        } else {
+            showToast("Bạn đang đọc chương mới nhất.", "info");
+        }
+    };
+    // ------------------------------------------------
+
     const handleToggleFollow = async () => {
         if (!user) { setShowLoginModal(true); return; }
         const token = localStorage.getItem('user_token');
@@ -158,37 +174,27 @@ const ChapterPage = () => {
                             {images.map((img, index) => (<LazyChapterImage key={index} src={img.src} alt={`Trang ${index + 1}`} />))}
                         </div>
 
-                        {/* --- THANH ĐIỀU HƯỚNG CUỐI CHƯƠNG (ĐÃ SỬA) --- */}
+                        {/* --- THANH ĐIỀU HƯỚNG CUỐI CHƯƠNG (ĐÃ CẬP NHẬT DÙNG TOAST) --- */}
                         <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col items-center gap-6 border-t border-white/5 mt-8">
                             <h3 className="text-xl font-bold text-white">Bạn đã đọc hết chương {chapterName}</h3>
                             
-                            {/* Điều hướng chính - Chỉ còn 2 nút */}
                             <div className="flex items-center gap-4 w-full max-w-md">
                                 {/* Nút Chương Trước */}
-                                {prevChapter ? (
-                                    <Link to={`/doc-truyen/${slug}/${prevChapter}`} className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-[#252538] hover:bg-white/10 text-white border-white/10">
-                                        <RiArrowLeftSLine size={20} /> Chương Trước
-                                    </Link>
-                                ) : (
-                                    // Trạng thái disabled nếu không có chương trước
-                                    <button disabled className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-gray-800/50 text-gray-500 border-transparent cursor-not-allowed">
-                                        <RiErrorWarningLine size={20} /> Đây là chương đầu
-                                    </button>
-                                )}
+                                <button 
+                                    onClick={handlePrevChapter}
+                                    className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-[#252538] hover:bg-white/10 text-white border-white/10"
+                                >
+                                    <RiArrowLeftSLine size={20} /> Chương Trước
+                                </button>
 
                                 {/* Nút Chương Sau */}
-                                {nextChapter ? (
-                                    <Link to={`/doc-truyen/${slug}/${nextChapter}`} className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-primary hover:bg-blue-600 text-white border-primary shadow-lg shadow-blue-900/20">
-                                        Chương Sau <RiArrowRightSLine size={20} />
-                                    </Link>
-                                ) : (
-                                    // Trạng thái disabled nếu không có chương sau
-                                    <button disabled className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-gray-800/50 text-gray-500 border-transparent cursor-not-allowed">
-                                        Chương mới nhất rồi <RiCheckLine size={20} />
-                                    </button>
-                                )}
+                                <button 
+                                    onClick={handleNextChapter}
+                                    className="flex-1 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-colors border bg-primary hover:bg-blue-600 text-white border-primary shadow-lg shadow-blue-900/20"
+                                >
+                                    Chương Sau <RiArrowRightSLine size={20} />
+                                </button>
                             </div>
-                            {/* Đã xóa các nút chức năng phụ ở đây */}
                         </div>
 
                         {/* --- KHU VỰC BÌNH LUẬN --- */}
@@ -197,9 +203,8 @@ const ChapterPage = () => {
                             <CommentSection comicSlug={slug} chapterName={chapterName} />
                         </div>
 
-                        {/* --- KHU VỰC GỢI Ý TRUYỆN (ĐÃ DI CHUYỂN XUỐNG CUỐI) --- */}
+                        {/* --- KHU VỰC GỢI Ý TRUYỆN --- */}
                         <div className="max-w-4xl mx-auto px-4 pb-8 border-t border-white/5 pt-8">
-                             {/* Truyền currentSlug để tránh gợi ý lại truyện đang đọc */}
                             <RecommendedComicsSection currentSlug={slug} limit={6} />
                         </div>
                     </>
@@ -214,14 +219,20 @@ const ChapterPage = () => {
                 <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4">
                     <div className="bg-[#151525]/90 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl p-1.5 flex items-center gap-2 sm:gap-3 max-w-lg w-full justify-between transition-transform hover:scale-[1.01]">
                         <Link to="/" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-white/10 hover:text-white transition-colors" title="Trang chủ"><RiHome4Line size={20} /></Link>
-                        <Link to={prevChapter ? `/doc-truyen/${slug}/${prevChapter}` : '#'} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${prevChapter ? 'text-white hover:bg-white/10 active:bg-white/20' : 'text-gray-600 cursor-not-allowed'}`} title="Chương trước"><RiArrowLeftSLine size={24} /></Link>
+                        
+                        {/* Nút < trên floating bar cũng dùng handler mới */}
+                        <button onClick={handlePrevChapter} className="w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white hover:bg-white/10 active:bg-white/20" title="Chương trước"><RiArrowLeftSLine size={24} /></button>
+                        
                         <div className="relative flex-1 max-w-[160px]">
                             <select value={chapterName} onChange={handleSelectChapter} className="w-full h-10 pl-3 pr-8 rounded-full bg-primary text-white text-xs font-bold focus:outline-none appearance-none cursor-pointer text-center shadow-lg shadow-primary/30 truncate border-none outline-none ring-0">
                                 {chapterList.map(chap => (<option key={chap.chapter_name} value={chap.chapter_name} className="bg-[#1a1a2e] text-gray-300 py-2">Chương {chap.chapter_name}</option>))}
                             </select>
                             <RiListCheck className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none" size={16} />
                         </div>
-                        <Link to={nextChapter ? `/doc-truyen/${slug}/${nextChapter}` : '#'} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${nextChapter ? 'text-white hover:bg-white/10 active:bg-white/20' : 'text-gray-600 cursor-not-allowed'}`} title="Chương mới hơn"><RiArrowRightSLine size={24} /></Link>
+
+                        {/* Nút > trên floating bar cũng dùng handler mới */}
+                        <button onClick={handleNextChapter} className="w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white hover:bg-white/10 active:bg-white/20" title="Chương mới hơn"><RiArrowRightSLine size={24} /></button>
+                        
                         <button onClick={handleToggleFollow} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isFollowed ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:text-red-500 hover:bg-white/10'}`} title="Theo dõi">{isFollowed ? <RiHeart3Fill size={20} /> : <RiHeart3Line size={20} />}</button>
                         <button onClick={() => setShowReportModal(true)} className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors" title="Báo lỗi"><RiFlag2Line size={20} /></button>
                     </div>
