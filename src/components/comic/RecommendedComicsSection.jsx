@@ -3,53 +3,63 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { RiEyeFill, RiArrowRightSLine, RiLoader4Line } from 'react-icons/ri';
+import { RiEyeFill, RiArrowRightSLine } from 'react-icons/ri';
 
 // URL Cố định
 const COMIC_IMAGE_DOMAIN = 'https://img.otruyenapi.com/uploads/comics/';
 
-const RecommendedComicsSection = ({ currentSlug = null, limit = 6 }) => {
+const RecommendedComicsSection = ({ currentSlug = null, limit = 5 }) => { // Giảm limit mặc định xuống 5 cho gọn sidebar
     const [suggestedComics, setSuggestedComics] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- HÀM FETCH GỢI Ý (Tự động chạy) ---
+    // --- HÀM FETCH GỢI Ý ---
     const fetchRandomSuggestions = useCallback(async () => {
         setLoading(true);
         try {
-            // 1. Lấy danh sách truyện mới từ một trang ngẫu nhiên (1-10)
+            // 1. Lấy danh sách truyện mới
             const randomPage = Math.floor(Math.random() * 10) + 1;
             const res = await axios.get(`https://otruyenapi.com/v1/api/danh-sach/truyen-moi?page=${randomPage}`);
             let items = res.data?.data?.items || [];
 
-            // 2. Lọc bỏ truyện hiện tại (nếu có)
+            // 2. Lọc bỏ truyện hiện tại
             if (currentSlug) {
                 items = items.filter(item => item.slug !== currentSlug);
             }
 
-            // 3. Xáo trộn và lấy số lượng theo giới hạn (limit) + dư ra một chút để đề phòng lỗi
+            // 3. Xáo trộn và lấy số lượng
             const shuffled = items.sort(() => 0.5 - Math.random()).slice(0, limit + 2);
 
-            // 4. Gọi API chi tiết cho từng truyện để lấy thông tin đầy đủ
+            // 4. Gọi API chi tiết và xử lý dữ liệu
             const detailedSuggestions = await Promise.all(shuffled.map(async (item) => {
                 try {
                     const detailRes = await axios.get(`https://otruyenapi.com/v1/api/truyen-tranh/${item.slug}`);
                     const comicData = detailRes.data.data.item;
-                    // Chỉ lấy các thông tin cần thiết để hiển thị card
+                    
+                    // --- SỬA ĐỔI: LẤY CHƯƠNG MỚI NHẤT ---
+                    let latestChap = 'Full';
+                    // Lấy dữ liệu server đầu tiên
+                    const serverData = comicData.chapters?.[0]?.server_data;
+                    if (serverData && serverData.length > 0) {
+                        // Lấy phần tử CUỐI CÙNG trong mảng để được chương mới nhất
+                        latestChap = serverData[serverData.length - 1].chapter_name;
+                    }
+                    // ------------------------------------
+
                     return {
                         _id: comicData._id,
                         slug: comicData.slug,
                         name: comicData.name,
                         thumb_url: comicData.thumb_url,
-                        latest_chapter: comicData.chapters?.[0]?.server_data?.[0]?.chapter_name || 'Full',
+                        latest_chapter: latestChap, // Sử dụng chương mới nhất vừa lấy
                         category: comicData.category || [],
                         status: comicData.status
                     };
                 } catch (err) {
-                    return null; // Trả về null nếu lỗi lấy chi tiết
+                    return null;
                 }
             }));
 
-            // 5. Lọc bỏ kết quả null và cắt đúng số lượng limit yêu cầu
+            // 5. Lọc và cắt đúng số lượng
             setSuggestedComics(detailedSuggestions.filter(item => item !== null).slice(0, limit));
 
         } catch (error) {
@@ -60,7 +70,6 @@ const RecommendedComicsSection = ({ currentSlug = null, limit = 6 }) => {
         }
     }, [currentSlug, limit]);
 
-    // Gọi hàm fetch khi component được mount hoặc props thay đổi
     useEffect(() => {
         fetchRandomSuggestions();
     }, [fetchRandomSuggestions]);
@@ -76,7 +85,10 @@ const RecommendedComicsSection = ({ currentSlug = null, limit = 6 }) => {
             <div className="flex-1 min-w-0 py-1 flex flex-col justify-between">
                 <div>
                     <h3 className="text-sm font-bold text-white truncate-2-lines group-hover:text-primary transition-colors leading-tight">{item.name}</h3>
-                    <p className="text-xs text-green-500 font-bold mt-1 truncate">{item.latest_chapter ? (item.latest_chapter.toLowerCase().includes('chapter') ? item.latest_chapter : `Chương ${item.latest_chapter}`) : 'Đang cập nhật'}</p>
+                    {/* Hiển thị chương mới nhất với tiền tố "Chương" */}
+                    <p className="text-xs text-green-500 font-bold mt-1 truncate">
+                        {item.latest_chapter ? (item.latest_chapter.toLowerCase().includes('chapter') ? item.latest_chapter : `Chương ${item.latest_chapter}`) : 'Đang cập nhật'}
+                    </p>
                 </div>
                 <div className="flex gap-1 mt-2 flex-wrap">
                     {item.category.slice(0, 2).map(cat => (
@@ -87,9 +99,10 @@ const RecommendedComicsSection = ({ currentSlug = null, limit = 6 }) => {
         </Link>
     );
 
-    // --- HELPER RENDER SKELETON ---
+    // --- HELPER RENDER SKELETON (Sửa lại bố cục dọc) ---
     const renderSuggestionSkeleton = () => (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        // SỬA ĐỔI: Sử dụng flex-col thay vì grid để luôn hiển thị 1 cột
+        <div className="flex flex-col gap-4">
             {Array(limit).fill(0).map((_, i) => (
                 <div key={i} className="flex gap-3 p-2 bg-white/5 rounded-xl animate-pulse">
                     <div className="w-20 h-28 bg-white/10 rounded-lg flex-shrink-0"></div>
@@ -123,8 +136,8 @@ const RecommendedComicsSection = ({ currentSlug = null, limit = 6 }) => {
             <div className="p-4">
                 {loading ? renderSuggestionSkeleton() : (
                     suggestedComics.length > 0 ? (
-                        // Sử dụng Grid layout để tự động điều chỉnh số cột
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        // SỬA ĐỔI: Sử dụng flex-col để luôn hiển thị 1 cột trên mọi thiết bị
+                        <div className="flex flex-col gap-4">
                             {suggestedComics.map(item => renderSuggestionItem(item))}
                         </div>
                     ) : (
