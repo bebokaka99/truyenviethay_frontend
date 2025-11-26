@@ -127,7 +127,7 @@ const RecommendedComicsSection = ({ currentSlug = null, limit = 5 }) => { // Gi�
                 <h2 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
                     <RiEyeFill className="text-primary" /> CÓ THỂ BẠN THÍCH
                 </h2>
-                <Link to="/danh-sach/truyen-moi" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">
+                <Link to="/danh-sach" className="text-xs text-gray-500 hover:text-primary flex items-center transition-colors">
                     Xem thêm <RiArrowRightSLine />
                 </Link>
             </div>
