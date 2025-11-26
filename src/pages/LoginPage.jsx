@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
 import { RiUser3Line, RiLockPasswordLine, RiArrowLeftSLine, RiLoader4Line } from 'react-icons/ri';
 
+// Contexts
+import { useAuth } from '../contexts/AuthContext';
+
 const LoginPage = () => {
-  // Đổi tên state 'email' thành 'identifier' cho đúng ngữ nghĩa
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,19 +21,16 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // Gọi API Backend với field 'identifier'
       const response = await axios.post('/api/auth/login', {
-        identifier, // Gửi email hoặc username vào đây
+        identifier, // Email hoặc Username
         password
       });
 
-      // Nếu thành công
       const { token, user } = response.data;
-      login(user, token); // Lưu thông tin vào Context
-      navigate('/'); // Chuyển về trang chủ
+      login(user, token);
+      navigate('/');
 
     } catch (err) {
-      // Xử lý lỗi từ server
       setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
@@ -65,15 +63,15 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           
-          {/* Identifier Input (Email or Username) */}
+          {/* Identifier Input */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <RiUser3Line className="text-gray-500" />
             </div>
             <input
-              type="text" // Đổi sang text để nhập username được
+              type="text"
               required
-              placeholder="Email hoặc Tên đăng nhập" // Placeholder rõ ràng
+              placeholder="Email hoặc Tên đăng nhập"
               className="w-full bg-[#0a0a16] border border-white/10 text-white text-sm rounded-lg block pl-10 p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
@@ -96,7 +94,7 @@ const LoginPage = () => {
           </div>
 
           <div className="flex justify-end">
-            <a href="/forgot-password" className="text-xs text-primary hover:text-blue-400 font-bold">Quên mật khẩu?</a>
+            <Link to="/forgot-password" className="text-xs text-primary hover:text-blue-400 font-bold">Quên mật khẩu?</Link>
           </div>
 
           <button

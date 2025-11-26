@@ -1,36 +1,39 @@
-// Thay thế file client/src/App.jsx bằng code dưới đây
-
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast'; 
-import { AuthProvider } from './contexts/AuthContext';
-import AdminRoute from './components/auth/AdminRoute'; 
+import { Toaster } from 'react-hot-toast';
 
-// --- PAGES ---
+// Contexts & Auth
+import { AuthProvider } from './contexts/AuthContext';
+import AdminRoute from './components/auth/AdminRoute';
+
+// Pages: Auth & General
 import HomePage from './pages/HomePage';
-import ComicDetailPage from './pages/ComicDetailPage';
-import ChapterPage from './pages/ChapterPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import AboutPage from './pages/AboutPage';
+import NotFoundPage from './pages/NotFoundPage';
+
+// Pages: Content
+import ComicDetailPage from './pages/ComicDetailPage';
+import ChapterPage from './pages/ChapterPage';
+import ListPage from './pages/ListPage';
+import SearchPage from './pages/SearchPage';
+import RankingPage from './pages/RankingPage';
+
+// Pages: User
 import ProfilePage from './pages/ProfilePage';
 import HistoryPage from './pages/HistoryPage';
 import LibraryPage from './pages/LibraryPage';
-import RankingPage from './pages/RankingPage';
-import ListPage from './pages/ListPage';
-import SearchPage from './pages/SearchPage'; 
-import NotFoundPage from './pages/NotFoundPage'; 
-import AboutPage from './pages/AboutPage'; 
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import NotificationsPage from './pages/NotificationsPage';
 
-// --- ADMIN PAGES ---
+// Pages: Admin
 import DashboardPage from './pages/admin/DashboardPage';
-
 
 function App() {
   return (
     <AuthProvider>
-      {/* Cấu hình Toast Notification Global */}
+      {/* Global Toast Configuration */}
       <Toaster 
         position="top-right" 
         toastOptions={{
@@ -45,13 +48,14 @@ function App() {
       />
       
       <Routes>
-        {/* --- PUBLIC ROUTES --- */}
+        {/* Public routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/gioi-thieu" element={<AboutPage />} /> 
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/gioi-thieu" element={<AboutPage />} /> 
 
+        {/* Content routes */}
         <Route path="/truyen-tranh/:slug" element={<ComicDetailPage />} />
         <Route path="/doc-truyen/:slug/:chapterName" element={<ChapterPage />} />
         
@@ -60,19 +64,20 @@ function App() {
         <Route path="/tim-kiem" element={<SearchPage />} />
         <Route path="/xep-hang" element={<RankingPage />} />
         <Route path="/thong-bao" element={<NotificationsPage />} />
-        {/* --- AUTHENTICATED ROUTES (Không cần ProtectedRoute vì logic đã được handle bên trong từng Page) --- */}
+
+        {/* Authenticated routes */}
+        {/* Logic bảo vệ route đã được xử lý bên trong từng Page */}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/lich-su" element={<HistoryPage />} />
         <Route path="/theo-doi" element={<LibraryPage />} />
 
-        {/* --- ADMIN ROUTES (Protected by Role) --- */}
+        {/* Admin routes */}
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<DashboardPage />} />
         </Route>
 
-        {/* --- 404 NOT FOUND (ĐẶT Ở CUỐI CÙNG) --- */}
+        {/* 404 Not Found */}
         <Route path="*" element={<NotFoundPage />} />
-
       </Routes>
     </AuthProvider>
   );
